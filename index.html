@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Play Tribes 2 – Team Combat on an Epic Scale!</title>
+
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+  <link rel="manifest" href="/favicon/site.webmanifest">
+
+  <!-- Meta -->
+  <meta name="theme-color" content="#03e0a3">
+  <meta name="title" content="Play Tribes 2 – Team Combat on an Epic Scale!">
+  <meta property="og:type"       content="website">
+  <meta property="og:url"        content="https://playt2.com/">
+  <meta property="og:site_name"  content="Play Tribes 2">
+  <meta property="og:title"      content="Play Tribes 2 – Team Combat on an Epic Scale!">
+  <meta property="og:image"      content="https://www.playt2.com/images/meta.png">
+  <meta property="twitter:card"  content="summary_large_image">
+  <meta property="twitter:url"   content="https://playt2.com/">
+  <meta property="twitter:title" content="Play Tribes 2 – Team Combat on an Epic Scale!">
+  <meta property="twitter:image" content="https://www.playt2.com/images/meta.png">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="assets/css/modern.css" />
+  <link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="#hero" class="navbar-brand">
+    <img src="images/avatar.svg" alt="PlayT2 logo" />
+    Play Tribes 2
+  </a>
+
+  <ul class="navbar-links" id="navLinks">
+    <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li>
+    <li><a href="#hero">Home</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#resources">Resources</a></li>
+    <li><a href="serverlist.html">Servers</a></li>
+  </ul>
+
+  <div class="navbar-actions">
+    <a href="discord.html" class="btn btn-ghost">Discord</a>
+    <a href="config.html" class="btn btn-primary">Download&#8239;&#8599;</a>
+    <button class="navbar-toggle" id="navToggle" aria-label="Toggle menu">
+      <i class="fas fa-bars"></i>
+    </button>
+  </div>
+</nav>
+
+<!-- LIVE SERVER TICKER -->
+<div class="ticker-bar" id="tickerBar" role="marquee" aria-label="Live server list">
+  <div class="ticker-label">
+    <span class="dot"></span> Live Servers
+  </div>
+  <div class="ticker-track">
+    <div class="ticker-inner" id="tickerInner">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Hero -->
+<section class="hero" id="hero">
+  <span class="hero-eyebrow">Free-to-Play &#xB7; Community-Run</span>
+
+  <h1>Master the Battlefield<br>in Tribes&nbsp;2</h1>
+
+  <p class="hero-sub">
+    Tribes 2 is a high-octane, team-based first-person shooter built for online multiplayer.
+    Seize enemy flags, command vehicles, and dominate massive open maps &mdash; all for free.
+  </p>
+
+  <div class="hero-cta">
+    <a href="config.html" class="btn btn-primary btn-lg">Get started&#8239;&#8599;</a>
+    <a href="readmore.html" class="btn-outline">Read the review</a>
+  </div>
+
+  <div class="hero-trust">
+    <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+    <span>Loved by the community &nbsp;&middot;&nbsp; Active servers 24/7</span>
+  </div>
+
+  <div class="hero-mockup">
+    <img src="images/banner.jpg" alt="Tribes 2 gameplay screenshot" />
+  </div>
+</section>
+
+<!-- Install -->
+<section class="section" id="install">
+  <div class="section-inner">
+    <p class="section-label">Get In-Game</p>
+    <h2 class="section-title">Deploy</h2>
+    <p class="section-sub">Pick the installer that suits you. Both options get you into servers fast.</p>
+
+    <div class="install-grid">
+
+      <div class="card">
+        <img class="card-img" src="images/install_1.jpg" alt="Tribes 2 Config AIO installer screenshot" />
+        <div class="card-body">
+          <h3 class="card-title">Tribes 2 Config AIO</h3>
+          <p class="card-text">
+            Fresh install with mappacks, scripts, interpolation settings, and textures pre-included.
+            Great for new players who want a quick and easy process.
+          </p>
+          <div class="card-actions">
+            <a href="config.html" class="btn btn-primary">Download&#8239;&#8599;</a>
+            <a href="config2.html" class="btn-mirror">Mirror</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <img class="card-img" src="images/Install_2.jpg" alt="Vanilla Tribes 2 GSI installer screenshot" />
+        <div class="card-body">
+          <h3 class="card-title">Shareware Tribes 2 GSI</h3>
+          <p class="card-text">
+            The stock Tribes 2 installer. You will need the
+            <a href="http://www.tribesnext.com/" style="color:var(--accent)">TribesNext patch</a>
+            and to configure
+            <a href="sling.html" style="color:var(--accent)">scripts</a>
+            and settings yourself.
+          </p>
+          <div class="card-actions">
+            <a href="http://www.tribesnext.com/" class="btn btn-primary">Download&#8239;&#8599;</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Resources -->
+<section class="section resources-section" id="resources">
+  <div class="section-inner">
+    <p class="section-label">Community</p>
+    <h2 class="section-title">Resources &amp; Links</h2>
+    <p class="section-sub">Everything you need to become a seasoned Tribes 2 veteran.</p>
+
+    <div class="resources-grid">
+
+      <div class="resource-block">
+        <h4><i class="fab fa-discord"></i> Discord Community</h4>
+        <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.75">
+          Join the PlayT2 Discord for live game alerts, help with installation, strategy discussions, and community events.
+        </p>
+        <a href="discord.html" class="btn btn-primary">Join Discord&#8239;&#8599;</a>
+      </div>
+
+      <div class="resource-block">
+        <h4><i class="fas fa-link"></i> Useful Links</h4>
+        <ul class="resource-links">
+          <li><a href="https://www.tribesnext.com/forum/">TribesNext Forums</a></li>
+          <li><a href="mappacks.html">Mappack Installer</a></li>
+          <li><a href="sling.html">Sling Scripts</a></li>
+          <li><a href="https://lutris.net/games/tribes-2/">Lutris Installer (Linux)</a></li>
+          <li><a href="textures.html">Additional Textures</a></li>
+          <li><a href="maps.html">Map Catalog</a></li>
+          <li><a href="lore.html">Tribes 2 Lore</a></li>
+          <li><a href="https://files.playt2.com/VoicePacks/zAllInOne%2BMuted.vl2">Voicepack</a></li>
+          <li><a href="guides.html">Guides</a></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Arsenal -->
+<section class="section arsenal-section" id="arsenal">
+  <div class="hero-arsenal">
+    <div class="arsenal-header">
+      <div>
+        <p class="section-label">Weapons &amp; Vehicles</p>
+        <h2 class="section-title">The Arsenal</h2>
+        <p class="section-sub">From jetpack sniping to tank assaults &mdash; pick your loadout and dominate.</p>
+      </div>
+      <a href="guides.html" class="btn btn-primary">Full Guide &rarr;</a>
+    </div>
+
+    <!-- Weapons -->
+    <div class="weapons-grid">
+
+      <div class="weapon-card">
+        <img class="weapon-img" src="images/guides/weapons/twb_Spinfusor.png" alt="Spinfusor" />
+        <span class="weapon-name">Spinfusor</span>
+        <span class="weapon-role">Disc Launcher</span>
+      </div>
+
+      <div class="weapon-card">
+        <img class="weapon-img" src="images/guides/weapons/twb_Chaingun.png" alt="Chaingun" />
+        <span class="weapon-name">Chaingun</span>
+        <span class="weapon-role">Sustained Fire</span>
+      </div>
+
+      <div class="weapon-card">
+        <img class="weapon-img" src="images/guides/weapons/twb_Fusionmortar.png" alt="Fusion Mortar" />
+        <span class="weapon-name">Mortar</span>
+        <span class="weapon-role">Heavy Explosive</span>
+      </div>
+
+      <div class="weapon-card">
+        <img class="weapon-img" src="images/guides/weapons/twb_Laserrifle.png" alt="Laser Rifle" />
+        <span class="weapon-name">Laser Rifle</span>
+        <span class="weapon-role">Sniper</span>
+      </div>
+
+      <div class="weapon-card">
+        <img class="weapon-img" src="images/guides/weapons/twb_Elfprojector.png" alt="ELF Gun" />
+        <span class="weapon-name">ELF Gun</span>
+        <span class="weapon-role">Energy Drain</span>
+      </div>
+
+      <div class="weapon-card">
+        <img class="weapon-img" src="images/guides/weapons/twb_Grenadelauncher.png" alt="Grenade Launcher" />
+        <span class="weapon-name">Grenade Launcher</span>
+        <span class="weapon-role">Area Denial</span>
+      </div>
+
+      <div class="weapon-card">
+        <img class="weapon-img" src="images/guides/weapons/twb_Missilelauncher.png" alt="Missile Launcher" />
+        <span class="weapon-name">Missile Launcher</span>
+        <span class="weapon-role">Anti-Air / Anti-Vehicle</span>
+      </div>
+
+      <div class="weapon-card">
+        <img class="weapon-img" src="images/guides/weapons/twb_Plasmarifle.png" alt="Plasma Rifle" />
+        <span class="weapon-name">Plasma Rifle</span>
+        <span class="weapon-role">Mid-Range</span>
+      </div>
+
+      <div class="weapon-card">
+        <img class="weapon-img" src="images/guides/weapons/twb_Blaster.png" alt="Blaster" />
+        <span class="weapon-name">Blaster</span>
+        <span class="weapon-role">Sidearm</span>
+      </div>
+
+      <div class="weapon-card">
+        <img class="weapon-img" src="images/guides/weapons/twb_shocklance.png" alt="Shock Lance" />
+        <span class="weapon-name">Shock Lance</span>
+        <span class="weapon-role">Melee</span>
+      </div>
+
+    </div>
+
+    <!-- Vehicles -->
+    <p class="vehicles-label">Ground &amp; Air Vehicles</p>
+    <div class="vehicles-grid">
+
+      <div class="vehicle-card">
+        <img class="vehicle-img" src="images/guides/vehicles/vehicle_gravscout.png" alt="Gravcycle" />
+        <span class="vehicle-name">Gravcycle</span>
+      </div>
+
+      <div class="vehicle-card">
+        <img class="vehicle-img" src="images/guides/vehicles/vehicle_shrike.png" alt="Shrike" />
+        <span class="vehicle-name">Shrike</span>
+      </div>
+
+      <div class="vehicle-card">
+        <img class="vehicle-img" src="images/guides/vehicles/vehicle_bomber.png" alt="Bomber" />
+        <span class="vehicle-name">Bomber</span>
+      </div>
+
+      <div class="vehicle-card">
+        <img class="vehicle-img" src="images/guides/vehicles/vehicle_tank.png" alt="Tank" />
+        <span class="vehicle-name">Tank</span>
+      </div>
+
+      <div class="vehicle-card">
+        <img class="vehicle-img" src="images/guides/vehicles/vehicle_transport.png" alt="Transport" />
+        <span class="vehicle-name">Transport</span>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <p>
+    <a href="discord.html">PlayT2 Discord</a>
+    &nbsp;&middot;&nbsp;
+    &copy; Dynamix / Sierra On-Line. Community website &mdash; not affiliated with the original publisher.
+  </p>
+</footer>
+
+<script>
+  document.getElementById('navToggle').addEventListener('click', function () {
+    document.getElementById('navLinks').classList.toggle('open');
+  });
+  document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      var target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('navLinks').classList.remove('open');
+      }
+    });
+  });
+</script>
+
+<script>
+  /* ─── Server Ticker ──────────────────────────────────────── */
+  (function() {
+    var REFRESH_MS = 60000;  // re-fetch every 60 s
+
+    function buildEntry(sobj) {
+      var players = parseInt(sobj.num_players || 0, 10);
+      var max     = sobj.info_flags && sobj.info_flags.max_players ? sobj.info_flags.max_players : '?';
+      var name    = sobj.info_hostname || '—';
+      var map     = sobj.info_map     || '';
+      var mode    = sobj.info_maptype || '';
+
+      var el = document.createElement('span');
+      el.className = 'ticker-entry';
+      el.setAttribute('title', name + ' — ' + map);
+      el.innerHTML =
+        '<span class="t-name">' + escHtml(name) + '</span>' +
+        '<span class="t-players">' + players + '/' + max + '</span>' +
+        '<span class="t-map">' + escHtml(map) + (mode ? ' &middot; ' + escHtml(mode) : '') + '</span>' +
+        '<span class="t-sep">|</span>';
+      el.addEventListener('click', function() {
+        window.open('serverlist.html', '_blank');
+      });
+      return el;
+    }
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
+    }
+
+    function populateTicker(data) {
+      var inner = document.getElementById('tickerInner');
+      if (!inner) return;
+      inner.innerHTML = '';
+
+      var entries = [];
+      for (var sid in data) {
+        if (!Object.prototype.hasOwnProperty.call(data, sid)) continue;
+        entries.push(data[sid]);
+      }
+
+      // sort by player count descending
+      entries.sort(function(a, b) {
+        return parseInt(b.num_players || 0, 10) - parseInt(a.num_players || 0, 10);
+      });
+
+      if (entries.length === 0) {
+        var empty = document.createElement('span');
+        empty.className = 'ticker-entry';
+        empty.innerHTML = '<span class="t-map">No servers online right now</span>';
+        inner.appendChild(empty);
+        inner.appendChild(empty.cloneNode(true));
+        return;
+      }
+
+      // Build two copies so the seamless loop works (CSS moves by -50%)
+      for (var pass = 0; pass < 2; pass++) {
+        for (var i = 0; i < entries.length; i++) {
+          inner.appendChild(buildEntry(entries[i]));
+        }
+      }
+    }
+
+    function fetchAndPopulate() {
+      fetch('https://www.tribesnext.com/list.json')
+        .then(function(r) { return r.json(); })
+        .then(function(data) { populateTicker(data); })
+        .catch(function() {
+          var inner = document.getElementById('tickerInner');
+          if (inner && inner.children.length === 0) {
+            inner.innerHTML = '<span class="ticker-entry"><span class="t-map">Server list unavailable</span></span>';
+          }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      fetchAndPopulate();
+      setInterval(fetchAndPopulate, REFRESH_MS);
+    });
+  })();
+</script>
+
+<script>
+  /* Mobile nav */
+  document.getElementById('navToggle').addEventListener('click', function() {
+    document.getElementById('navLinks').classList.toggle('open');
+  });
+
+  /* Smooth scroll */
+  document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      var t = document.querySelector(this.getAttribute('href'));
+      if (t) {
+        e.preventDefault();
+        t.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('navLinks').classList.remove('open');
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
