@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>T2 Stats Leaderboard Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #090912;
+      color: #c8c8d8;
+      font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      gap: 20px;
+    }
+    h1 {
+      color: #0befe7;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      color: #4a4a7a;
+      font-size: 13px;
+      letter-spacing: 1px;
+    }
+    #dropzone {
+      width: 100%;
+      max-width: 860px;
+      height: 140px;
+      border: 2px dashed #1a1a40;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: rgba(11, 239, 231, 0.02);
+      position: relative;
+      user-select: none;
+    }
+    #dropzone.drag-over {
+      background: rgba(11, 239, 231, 0.07);
+      border-color: #0befe7;
+    }
+    #dropzone-label {
+      color: #0befe7;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      pointer-events: none;
+    }
+    #dropzone-sub {
+      color: #3a3a60;
+      font-size: 12px;
+      margin-top: 8px;
+      pointer-events: none;
+    }
+    #fileInput {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    #controls {
+      display: none;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    #controls.visible { display: flex; }
+    button {
+      background: #0befe7;
+      color: #06060f;
+      border: none;
+      padding: 9px 22px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: background 0.15s;
+    }
+    button:hover { background: #03d597; }
+    #status {
+      color: #4a4a7a;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+    #canvasWrap {
+      width: 100%;
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      border: 1px solid #111128;
+      /* Scale down for display while keeping full resolution for download */
+      transform-origin: top left;
+    }
+  </style>
+</head>
+<body>
+  <h1>Stats Leaderboard Generator</h1>
+  <p class="subtitle">lData (monthly / custom) &nbsp;·&nbsp; gmData (per-game map)</p>
+
+  <div id="dropzone">
+    <input type="file" id="fileInput" accept=".cs">
+    <div id="dropzone-label">DROP .CS FILE HERE</div>
+    <div id="dropzone-sub">or click to browse &nbsp;·&nbsp; lData: -GameType-mon-year-type-.cs &nbsp;·&nbsp; gmData: Map-GameType-Timestamp-G.cs</div>
+  </div>
+
+  <div id="controls">
+    <button id="downloadBtn">⬇ Download PNG</button>
+    <span id="status"></span>
+  </div>
+
+  <div id="canvasWrap">
+    <canvas id="canvas"></canvas>
+  </div>
+
+<script>
+'use strict';
+
+// ─── Canvas dimensions ────────────────────────────────────────────────────────
+const CW_LDATA  = 1860;  // genBigStats image width
+const CW_GMDATA = 1364;  // renderCTFMapTextTM image width (1344+20)
+const CH        = 1115;
+
+// Script exact colors  rgb(11,239,231) and rgb(3,213,151)
+const CYAN = 'rgb(11,239,231)';
+const TEAL = 'rgb(3,213,151)';
+
+const MONTH_NAMES = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+];
+
+const GAME_TYPE_LABELS = {
+  CTFGame:       'Capture the Flag',
+  LCTFGame:      'Lore CTF',
+  SCtFGame:      'Siege CTF',
+  DMGame:        'Deathmatch',
+  LakRabbitGame: 'Rabbit',
+  ArenaGame:     'Arena',
+};
+
+// ─── Stat name lookup (from $statsName[key] – getField(x,0)) ──────────────────
+const STAT_LABEL = {
+  scoreTG:'Score', killsTG:'Kills', deathsTG:'Deaths', suicidesTG:'Suicides',
+  teamKillsTG:'Team Kills', teamkillCountTG:'Team Kills',
+  flagCapsTG:'Flag Caps', flagGrabsTG:'Flag Grabs', carrierKillsTG:'Carrier Kills',
+  flagReturnsTG:'Flag Returns', escortAssistsTG:'Escort Assist',
+  defenseScoreTG:'Defense Score', offenseScoreTG:'Offense Score',
+  flagDefendsTG:'Flag Defends', genRepairsTG:'Gen Repairs',
+  genSolRepairsTG:'Gen Solo Repairs', StationRepairsTG:'Station Repairs',
+  TurretRepairsTG:'Turret Repairs', SensorRepairsTG:'Sensor Repairs',
+  solarRepairsTG:'Solar Repairs', sentryRepairsTG:'Sentry Repairs',
+  depInvRepairsTG:'DepInvy Repairs', VStationRepairsTG:'VStation Repairs',
+  cgKillsTG:'Chaingun Kills', discKillsTG:'Spinfusor Kills',
+  grenadeKillsTG:'Grenade L Kills', hGrenadeKillsTG:'Hand Grenade Kills',
+  laserKillsTG:'Laser Rifle Kills', mortarKillsTG:'Mortar Kills',
+  missileKillsTG:'Missile Kills', shockKillsTG:'Shocklance Kills',
+  plasmaKillsTG:'Plasma Rifle Kills', blasterKillsTG:'Blaster Kills',
+  mineKillsTG:'Mine Kills', satchelKillsTG:'Satchel Kills',
+  cgMATG:'Chaingun MidAirs', discMATG:'Spinfusor MidAirs',
+  grenadeMATG:'Grenade L MA', laserMATG:'Laser Rifle MidAirs',
+  mortarMATG:'Mortar MidAirs', shockMATG:'Shocklance MidAirs',
+  plasmaMATG:'Plasma MidAirs', blasterMATG:'Blaster MidAirs',
+  hGrenadeMATG:'Hand Nade MidAirs', missileMATG:'Missile MidAirs',
+  mineMATG:'Mine MidAirs', satchelMATG:'Satchel MidAirs',
+  laserDmgTG:'Laser Rifle Damage', blasterDmgTG:'Blaster Damage',
+  cgDmgTG:'Chaingun Damage', discDmgTG:'Spinfusor Damage',
+  grenadeDmgTG:'Grenade Damage', hGrenadeDmgTG:'HGrenade Damage',
+  mortarDmgTG:'Mortar Damage', missileDmgTG:'Missile Damage',
+  plasmaDmgTG:'Plasma Damage', shockDmgTG:'Shocklance Damage',
+  mineDmgTG:'Mine Damage', satchelDmgTG:'Satchel Damage',
+  cgHitDistMax:'Chaingun Hit Dist', discHitDistMax:'Spinfusor Hit Dist',
+  grenadeHitDistMax:'Nade L Hit Dist', hGrenadeHitDistMax:'Hand Nade Hit Dist',
+  laserHitDistMax:'LaserRifle Hit Dist', mortarHitDistMax:'Mortar Hit Dist',
+  missileHitDistMax:'Missile Hit Dist', plasmaHitDistMax:'Plasma Hit Dist',
+  blasterHitDistMax:'Blaster Hit Dist', shockHitDistMax:'Shocklance Hit Dist',
+  mineHitDistMax:'Mine Hit Dist', satchelHitDistMax:'Satchel Hit Dist',
+  discMAHitDistMax:'Spinfusor MA Dist', plasmaMAHitDistMax:'Plasma MA Dist',
+  blasterMAHitDistMax:'Blaster MA Dist', grenadeMAHitDistMax:'Nade L MA Dist',
+  cgMAHitDistMax:'Chaingun MA Dist Max', laserMAHitDistMax:'LaserRifle MA Dist',
+  mortarMAHitDistMax:'Mortar MA Dist', shockMAHitDistMax:'Shocklance MA Dist',
+  hGrenadeMAHitDistMax:'Hand Nade MA Dist', missileMAHitDistMax:'Missile MA Dist',
+  mineMAHitDistMax:'Mine MA Dist', satchelMAHitDistMax:'Satchel MA Dist',
+  elfShotsFiredTG:'ELF Useage', shotsFiredTG:'Shots Fired',
+  totalWepDmgTG:'Total Damage', comboCountTG:'Weapon Combos',
+  concussHitTG:'Concuss Hits', maxSpeedMax:'Highest Speed',
+  doubleKillTG:'Double Kills', tripleKillTG:'Triple Kills',
+  killStreakTG:'Killstreaks', killStreakMax:'Highest Kill Streak',
+  airTimeTG:'Air Time', discJumpTG:'Disc Jumps', roadKillsTG:'Road Kills',
+  maFlagCatchTG:'MA Flag Catch', interceptedFlagTG:'Flag Intercepts',
+  maInterceptedFlagTG:'Flag MA Intercepts', flagCatchTG:'Flag Catch',
+  flagTossTG:'Flags Thrown', maHitDistMax:'Midair Distance',
+  deadDistMax:'Dead Distance', distMovTG:'Distance Moved',
+  scoreAvg:'Score Avg', scoreMax:'Max Score', masTG:'Total MidAirs',
+  kdrAvg:'Best KDR', idleTimeTG:'Idle Time', lagSpikesTG:'Lag Spikes',
+  grabSpeedAvg:'Flag Grab Speed', capEfficiencyAvg:'Cap Efficiency',
+  firstKillTG:'First Kill', lastKillTG:'Last Kill',
+  repairsTG:'Repairs', genDestroysTG:'Gens Destroyed',
+  genDefendsTG:'Gen Defends', turretKillsTG:'Turret Kills',
+  EVKillsTG:'EV Kills', assistTG:'Kill Assist',
+  ctrlKKillsTG:'Ctrl-K Kills', flareKillTG:'Flare Kill',
+  deathKillsTG:'Death Kills', missileTKTG:'Missile Teamkills',
+  depInvyUseTG:'Deploy Invy Use', multiKillTG:'Multi Kill',
+  chainKillTG:'Chain Kill', inventoryKillsTG:'Inventory Kills',
+  grabSpeedMax:'Flag Grab Speed Max', heldTimeSecAvgI:'Held Time Avg',
+  repairEnemyTG:'Repair Enemy', repairpackpickupCountTG:'Repair Pack Picks',
+  depStationDestroysTG:'DepInvy Destroyed', depTurretDestroysTG:'DepTurret Destroyed',
+  depSensorDestroysTG:'DepSensor Destroyed', flagCatchSpeedMax:'Flag Catch Speed',
+  maFlagCatchSpeedMax:'MidAir Flag Speed', flagTossCatchTG:'Flag Toss Catch',
+  interceptSpeedMax:'Intercept Speed', stalemateReturnTG:'Stalemate Return',
+  minePlusDiscKillTG:'Mine Disc Kills', explosionKillsTG:'Explosion Kills',
+  totalMATG:'Total MidAirs', vehicleSpawnKillsTG:'Vehicle Spawn Kills',
+  bomberBombsKillsTG:'Bomber Bombs Kills', mpbGlitchTG:'MPB Glitch',
+  lightningKillsTG:'Lightning Kills', EVMAHitTG:'Environmental MA Hit',
+  shrikeBlasterKillsTG:'Shrike Blaster Kills', laserHeadShotTG:'Headshots',
+  shockRearShotTG:'Rear Lance', minePlusDiscTG:'Mine Disc Hits',
+  discMATG:'Spinfusor MidAirs', MidairflagGrabsTG:'MA Flag Grabs',
+  flagTimeMinTG:'Flag Time', morepointsTG:'Bonus Points',
+  winCountTG:'Win Count', lossCountTG:'Loss Count',
+  hatTricksTG:'Hat Tricks', roundsWonTG:'Rounds Won',
+  armorLKTG:'Armor L Kills', armorMKTG:'Armor M Kills', armorHKTG:'Armor H Kills',
+  totalTimeTG:'Total Time', winLostPctAvg:'Win Rate', scoreMax:'Max Score',
+  voteCountTG:'Votes Cast', switchteamCountTG:'Team Switches',
+  timeTLAvg:'Avg TL Time', blasterReflectKillTG:'Blaster Reflect Kill',
+  outOfBoundDeathsTG:'OOB Deaths', airTimeAvg:'Air Time Avg',
+  groundTimeTG:'Ground Time', groundDeathsTG:'Ground Deaths',
+  groundKillsTG:'Ground Kills', killGroundTG:'Kill Ground',
+  maHitHeightMax:'MA Hit Height', maHitDistMax:'Midair Distance',
+  discReflectHitTG:'Disc Reflect Hit', discReflectKillTG:'Disc Reflect Kill',
+  killerDiscJumpTG:'Killer DJ', blasterReflectHitTG:'Blaster Bounce Hit',
+  OffKillsTG:'Offensive Kills', DefKillsTG:'Defensive Kills',
+  maInterceptedFlagTG:'Flag MA Intercepts', interceptSpeedMax:'Intercept Speed Max',
+  maFlagCatchTG:'MA Flag Catch', quadrupleKillTG:'Quadruple Kills',
+  chatallCountTG:'Chat Count', voicebindsallCountTG:'Voice Binds',
+  cloakerKillsTG:'Stealth Kills', cloakersKilledTG:'Cloakers Killed', jammerTG:'Sensor Jammer',
+  // weapon shots fired / deaths (LCTFGame / SCtFGame / LakRabbitGame / ArenaGame upper wep panel)
+  blasterShotsFiredTG:'Blaster Rounds', blasterDeathsTG:'Blaster Deaths',
+  plasmaShotsFiredTG:'Plasma Rounds', plasmaDeathsTG:'Plasma Rifle Deaths',
+  discShotsFiredTG:'Spinfusor Rounds', discDeathsTG:'Spinfusor Deaths',
+  grenadeShotsFiredTG:'Grenade L Rounds', grenadeDeathsTG:'Grenade L Deaths',
+  cgShotsFiredTG:'Chaingun Rounds', cgDeathsTG:'Chaingun Deaths',
+  shockShotsFiredTG:'Shocklance Zaps', shockDeathsTG:'Shocklance Deaths',
+  mineShotsFiredTG:'Mines Thrown', mineDeathsTG:'Mine Deaths',
+  hGrenadeShotsFiredTG:'HGrenade Thrown', hGrenadeDeathsTG:'HGrenade Deaths',
+  mortarShotsFiredTG:'Mortar Rounds', mortarDeathsTG:'Mortar Deaths',
+  laserShotsFiredTG:'Laser Rifle Shots', laserDeathsTG:'Laser Rifle Deaths',
+  discKillGroundTG:'Ground Disc Kills',
+  // chain kill tiers
+  doubleChainKillTG:'Double Chain Kills', tripleChainKillTG:'Triple Chain Kills',
+  quadrupleChainKillTG:'Quadruple Chain Kills', quintupleChainKillTG:'Quintuple Chain Kills',
+  sextupleChainKillTG:'Sextuple Chain Kills', septupleChainKillTG:'Septuple Chain Kills',
+  octupleChainKillTG:'Octuple Chain Kills', nonupleChainKillTG:'Nonuple Chain Kills',
+};
+
+// ─── Per-game-type data tables ────────────────────────────────────────────────
+
+// Upper weapon panel: 9 entries (3 cols × 3 rows), empty string = blank cell.
+// The script reads with r starting at -1, so the very first read (r=-1) returns nothing (blank).
+// In z_dtStatsImgGen.cs the wepGrid array index 0 was also overwritten by a later assignment
+// (discMAHitDistMax → plasmaMAHitDistMax), so index 0 here reflects what the script actually shows.
+const UPPER_WEP_PANELS = {
+  // CTFGame: 3 cols × 4 rows = 12 entries.
+  // T2 script overwrites discMAHitDistMax→plasmaMAHitDistMax at [0] and stores comboCountTG/
+  // doubleKillTG/tripleKillTG at [8‑10] but only renders floor(11/3)=3 rows so those four are
+  // never shown. We restore all four and expand to 4 rows so they all render.
+  CTFGame: [
+    'discMAHitDistMax',    // [0]:  xc=0,i=0  (lost to T2 overwrite – restored)
+    'plasmaMAHitDistMax',  // [1]:  xc=0,i=1
+    'blasterMAHitDistMax', // [2]:  xc=0,i=2
+    'grenadeMAHitDistMax', // [3]:  xc=0,i=3
+    'elfShotsFiredTG',     // [4]:  xc=1,i=0
+    'totalWepDmgTG',       // [5]:  xc=1,i=1
+    'maxSpeedMax',         // [6]:  xc=1,i=2
+    'shotsFiredTG',        // [7]:  xc=1,i=3
+    'concussHitTG',        // [8]:  xc=2,i=0
+    'comboCountTG',        // [9]:  xc=2,i=1  (beyond T2's 3-row render – now included)
+    'doubleKillTG',        // [10]: xc=2,i=2  (beyond T2's 3-row render – now included)
+    'tripleKillTG',        // [11]: xc=2,i=3  (beyond T2's 3-row render – now included)
+  ],
+  // LCTFGame: blasterShotsFiredTG overwritten by blasterDeathsTG at [0]; restored here.
+  // T2 count=23, floor(23/3)=7 rows → 21 rendered; septupleChainKillTG/octupleChainKillTG/
+  // nonupleChainKillTG at T2 indices [20-22] were beyond the render window. Expanded to 24 entries
+  // (8 rows) so all three are now shown.
+  LCTFGame: [
+    'blasterShotsFiredTG',    // [0]: restored (lost to T2 overwrite)
+    'blasterDeathsTG',        // [1]
+    'plasmaShotsFiredTG',     // [2]
+    'plasmaDeathsTG',         // [3]
+    'discShotsFiredTG',       // [4]
+    'discDeathsTG',           // [5]
+    'grenadeShotsFiredTG',    // [6]
+    'grenadeDeathsTG',        // [7]
+    'cgShotsFiredTG',         // [8]
+    'cgDeathsTG',             // [9]
+    'shockShotsFiredTG',      // [10]
+    'shockDeathsTG',          // [11]
+    'mineShotsFiredTG',       // [12]
+    'mineDeathsTG',           // [13]
+    'hGrenadeShotsFiredTG',   // [14]
+    'hGrenadeDeathsTG',       // [15]
+    'doubleChainKillTG',      // [16]
+    'tripleChainKillTG',      // [17]
+    'quadrupleChainKillTG',   // [18]
+    'quintupleChainKillTG',   // [19]
+    'sextupleChainKillTG',    // [20]
+    'septupleChainKillTG',    // [21]: beyond T2's 7-row render – now included
+    'octupleChainKillTG',     // [22]: beyond T2's 7-row render – now included
+    'nonupleChainKillTG',     // [23]: beyond T2's 7-row render – now included
+  ],
+  // SCtFGame: identical upper-wep layout to LCTFGame
+  SCtFGame: [
+    'blasterShotsFiredTG',    // [0]: restored (lost to T2 overwrite)
+    'blasterDeathsTG',
+    'plasmaShotsFiredTG',
+    'plasmaDeathsTG',
+    'discShotsFiredTG',
+    'discDeathsTG',
+    'grenadeShotsFiredTG',
+    'grenadeDeathsTG',
+    'cgShotsFiredTG',
+    'cgDeathsTG',
+    'shockShotsFiredTG',
+    'shockDeathsTG',
+    'mineShotsFiredTG',
+    'mineDeathsTG',
+    'hGrenadeShotsFiredTG',
+    'hGrenadeDeathsTG',
+    'doubleChainKillTG',
+    'tripleChainKillTG',
+    'quadrupleChainKillTG',
+    'quintupleChainKillTG',
+    'sextupleChainKillTG',
+    'septupleChainKillTG',    // beyond T2's 7-row render – now included
+    'octupleChainKillTG',
+    'nonupleChainKillTG',
+  ],
+  // LakRabbitGame: same pattern as LCTFGame but with mortar instead of chaingun
+  LakRabbitGame: [
+    'blasterShotsFiredTG',    // [0]: restored (lost to T2 overwrite)
+    'blasterDeathsTG',
+    'plasmaShotsFiredTG',
+    'plasmaDeathsTG',
+    'discShotsFiredTG',
+    'discDeathsTG',
+    'grenadeShotsFiredTG',
+    'grenadeDeathsTG',
+    'mortarShotsFiredTG',
+    'mortarDeathsTG',
+    'shockShotsFiredTG',
+    'shockDeathsTG',
+    'mineShotsFiredTG',
+    'mineDeathsTG',
+    'hGrenadeShotsFiredTG',
+    'hGrenadeDeathsTG',
+    'doubleChainKillTG',
+    'tripleChainKillTG',
+    'quadrupleChainKillTG',
+    'quintupleChainKillTG',
+    'sextupleChainKillTG',
+    'septupleChainKillTG',    // beyond T2's 7-row render – now included
+    'octupleChainKillTG',
+    'nonupleChainKillTG',
+  ],
+  // ArenaGame: blasterShotsFiredTG overwritten by blasterDeathsTG at [0]; restored here.
+  // T2 count=14, floor(14/3)=4 rows → 12 rendered; laserDeathsTG/laserShotsFiredTG/
+  // hGrenadeShotsFiredTG at T2 indices [11-13] were beyond the render window. Expanded to 15
+  // entries (5 rows) so all three are now shown.
+  ArenaGame: [
+    'blasterShotsFiredTG',    // [0]: restored (lost to T2 overwrite)
+    'blasterDeathsTG',
+    'plasmaShotsFiredTG',
+    'plasmaDeathsTG',
+    'discShotsFiredTG',
+    'discDeathsTG',
+    'grenadeShotsFiredTG',
+    'grenadeDeathsTG',
+    'cgShotsFiredTG',
+    'cgDeathsTG',
+    'shockShotsFiredTG',
+    'shockDeathsTG',
+    'laserDeathsTG',          // beyond T2's 4-row render – now included
+    'laserShotsFiredTG',
+    'hGrenadeShotsFiredTG',
+  ],
+  // DefaultGame: same overwrite pattern as CTFGame but T2 uses concussHitTG again at [9]
+  // instead of doubleKillTG. Expanded to 12 entries (4 rows) matching the T2 script data.
+  DefaultGame: [
+    'discMAHitDistMax',    // [0]:  restored (lost to T2 overwrite)
+    'plasmaMAHitDistMax',  // [1]
+    'blasterMAHitDistMax', // [2]
+    'grenadeMAHitDistMax', // [3]
+    'elfShotsFiredTG',     // [4]
+    'totalWepDmgTG',       // [5]
+    'maxSpeedMax',         // [6]
+    'shotsFiredTG',        // [7]
+    'concussHitTG',        // [8]
+    'comboCountTG',        // [9]  (beyond T2 3-row render – now included)
+    'concussHitTG',        // [10] (T2 script has concussHitTG again here for DefaultGame)
+    'tripleKillTG',        // [11] (beyond T2 3-row render – now included)
+  ],
+};
+
+// Weapon grid definitions per game type
+// Each entry: { name, cols: [stat_key, ...] } where cols align with column headers
+const WEAPON_GRID = {
+  CTFGame: {
+    headers: ['Kills','MidAirs','Distance','Damage'],
+    weapons: [
+      { name:'Blaster',          cols:['blasterKillsTG','blasterMATG','blasterHitDistMax','blasterDmgTG'] },
+      { name:'Plasma Rifle',     cols:['plasmaKillsTG','plasmaMATG','plasmaHitDistMax','plasmaDmgTG'] },
+      { name:'Chaingun',         cols:['cgKillsTG','cgMATG','cgHitDistMax','cgDmgTG'] },
+      { name:'Spinfusor',        cols:['discKillsTG','discMATG','discHitDistMax','discDmgTG'] },
+      { name:'Grenade Launcher', cols:['grenadeKillsTG','grenadeMATG','grenadeHitDistMax','grenadeDmgTG'] },
+      { name:'Laser Rifle',      cols:['laserKillsTG','laserMATG','laserHitDistMax','laserDmgTG'] },
+      { name:'Fusion Mortar',    cols:['mortarKillsTG','mortarMATG','mortarHitDistMax','mortarDmgTG'] },
+      { name:'Missile Launcher', cols:['missileKillsTG','missileMATG','missileHitDistMax','missileDmgTG'] },
+      { name:'Shocklance',       cols:['shockKillsTG','shockMATG','shockHitDistMax','shockDmgTG'] },
+      { name:'Mine',             cols:['mineKillsTG','mineMATG','mineHitDistMax','mineDmgTG'] },
+    ],
+  },
+  LCTFGame: {
+    headers: ['Kills','MidAirs','Distance','Damage'],
+    weapons: [
+      { name:'Blaster',          cols:['blasterKillsTG','blasterMATG','blasterHitDistMax','blasterDmgTG'] },
+      { name:'Plasma Rifle',     cols:['plasmaKillsTG','plasmaMATG','plasmaHitDistMax','plasmaDmgTG'] },
+      { name:'Chaingun',         cols:['cgKillsTG','cgMATG','cgHitDistMax','cgDmgTG'] },
+      { name:'Spinfusor',        cols:['discKillsTG','discMATG','discHitDistMax','discDmgTG'] },
+      { name:'Grenade Launcher', cols:['grenadeKillsTG','grenadeMATG','grenadeHitDistMax','grenadeDmgTG'] },
+      { name:'Shocklance',       cols:['shockKillsTG','shockMATG','shockHitDistMax','shockDmgTG'] },
+      { name:'Mine',             cols:['mineKillsTG','mineMATG','mineHitDistMax','mineDmgTG'] },
+      { name:'Hand Grenade',     cols:['hGrenadeKillsTG','hGrenadeMATG','hGrenadeHitDistMax','hGrenadeDmgTG'] },
+    ],
+  },
+  SCtFGame: {
+    headers: ['Kills','MidAirs','Distance','Damage'],
+    weapons: [
+      { name:'Blaster',          cols:['blasterKillsTG','blasterMATG','blasterHitDistMax','blasterDmgTG'] },
+      { name:'Plasma Rifle',     cols:['plasmaKillsTG','plasmaMATG','plasmaHitDistMax','plasmaDmgTG'] },
+      { name:'Chaingun',         cols:['cgKillsTG','cgMATG','cgHitDistMax','cgDmgTG'] },
+      { name:'Spinfusor',        cols:['discKillsTG','discMATG','discHitDistMax','discDmgTG'] },
+      { name:'Grenade Launcher', cols:['grenadeKillsTG','grenadeMATG','grenadeHitDistMax','grenadeDmgTG'] },
+      { name:'Shocklance',       cols:['shockKillsTG','shockMATG','shockHitDistMax','shockDmgTG'] },
+      { name:'Mine',             cols:['mineKillsTG','mineMATG','mineHitDistMax','mineDmgTG'] },
+      { name:'Hand Grenade',     cols:['hGrenadeKillsTG','hGrenadeMATG','hGrenadeHitDistMax','hGrenadeDmgTG'] },
+    ],
+  },
+  LakRabbitGame: {
+    headers: ['Kills','MidAirs','Distance','Damage'],
+    weapons: [
+      { name:'Blaster',          cols:['blasterKillsTG','blasterMATG','blasterHitDistMax','blasterDmgTG'] },
+      { name:'Plasma Rifle',     cols:['plasmaKillsTG','plasmaMATG','plasmaHitDistMax','plasmaDmgTG'] },
+      { name:'Spinfusor',        cols:['discKillsTG','discMATG','discHitDistMax','discDmgTG'] },
+      { name:'Grenade Launcher', cols:['grenadeKillsTG','grenadeMATG','grenadeHitDistMax','grenadeDmgTG'] },
+      { name:'Shocklance',       cols:['shockKillsTG','shockMATG','shockHitDistMax','shockDmgTG'] },
+      { name:'Mine',             cols:['mineKillsTG','mineMATG','mineHitDistMax','mineDmgTG'] },
+      { name:'Hand Grenade',     cols:['hGrenadeKillsTG','hGrenadeMATG','hGrenadeHitDistMax','hGrenadeDmgTG'] },
+    ],
+  },
+  ArenaGame: {
+    headers: ['Kills','MidAirs','Distance','Damage'],
+    weapons: [
+      { name:'Blaster',          cols:['blasterKillsTG','blasterMATG','blasterHitDistMax','blasterDmgTG'] },
+      { name:'Plasma Rifle',     cols:['plasmaKillsTG','plasmaMATG','plasmaHitDistMax','plasmaDmgTG'] },
+      { name:'Spinfusor',        cols:['discKillsTG','discMATG','discHitDistMax','discDmgTG'] },
+      { name:'Grenade Launcher', cols:['grenadeKillsTG','grenadeMATG','grenadeHitDistMax','grenadeDmgTG'] },
+      { name:'Laser Rifle',      cols:['laserKillsTG','laserMATG','laserHitDistMax','laserDmgTG'] },
+      { name:'Shocklance',       cols:['shockKillsTG','shockMATG','shockHitDistMax','shockDmgTG'] },
+      { name:'Hand Grenade',     cols:['hGrenadeKillsTG','hGrenadeMATG','hGrenadeHitDistMax','hGrenadeDmgTG'] },
+    ],
+  },
+  DefaultGame: {
+    headers: ['Kills','MidAirs','Distance','Damage'],
+    weapons: [
+      { name:'Blaster',          cols:['blasterKillsTG','blasterMATG','blasterHitDistMax','blasterDmgTG'] },
+      { name:'Plasma Rifle',     cols:['plasmaKillsTG','plasmaMATG','plasmaHitDistMax','plasmaDmgTG'] },
+      { name:'Chaingun',         cols:['cgKillsTG','cgMATG','cgHitDistMax','cgDmgTG'] },
+      { name:'Spinfusor',        cols:['discKillsTG','discMATG','discHitDistMax','discDmgTG'] },
+      { name:'Grenade Launcher', cols:['grenadeKillsTG','grenadeMATG','grenadeHitDistMax','grenadeDmgTG'] },
+      { name:'Laser Rifle',      cols:['laserKillsTG','laserMATG','laserHitDistMax','laserDmgTG'] },
+      { name:'Fusion Mortar',    cols:['mortarKillsTG','mortarMATG','mortarHitDistMax','mortarDmgTG'] },
+      { name:'Missile Launcher', cols:['missileKillsTG','missileMATG','missileHitDistMax','missileDmgTG'] },
+      { name:'Shocklance',       cols:['shockKillsTG','shockMATG','shockHitDistMax','shockDmgTG'] },
+      { name:'Mine',             cols:['mineKillsTG','mineMATG','mineHitDistMax','mineDmgTG'] },
+    ],
+  },
+};
+
+// panelThree: 3 columns, rendered reading columns then rows (columns 0..2 inner, rows outer)
+// The script: for i in range(floor(count/3)): for x in 0..2: draw $panelThree[r++, game], r starts at -1
+// So the first read is r=-1 (blank → ''), followed by the actual array entries.
+// Also, the first script assignment uses a plain write then an overwriting post-increment, so item[0]
+// is the SECOND value on that line.  Items beyond floor(count/3)*3-1 are never rendered.
+const PANEL_THREE = {
+  // CTFGame: flareKillTG overwrites ctrlKKillsTG at index 0 in the T2 script; restore ctrlKKillsTG
+  // at [0] so the blank slot is used productively (same approach as SMALL_PANELS/flagCapsTG fix).
+  // T2 count=47, floor(47/3)=15 rows → 45 entries rendered; interceptedFlagTG/maInterceptedFlagTG/
+  // interceptSpeedMax at T2 indices [44-46] were beyond the render window. Expanded to 48 entries
+  // (16 rows) so all three are now shown.
+  CTFGame: [
+    'ctrlKKillsTG',
+    'flareKillTG','deathKillsTG',
+    'missileTKTG','depInvyUseTG','concussHitTG',
+    'multiKillTG','chainKillTG','inventoryKillsTG',
+    'assistTG','deadDistMax','idleTimeTG',
+    'grabSpeedAvg','heldTimeSecAvgI','capEfficiencyAvg',
+    'repairEnemyTG','turretKillsTG','teamKillsTG',
+    'EVKillsTG','killStreakMax','kdrAvg',
+    'lightningKillsTG','stalemateReturnTG','distMovTG',
+    'minePlusDiscKillTG','explosionKillsTG','totalMATG',
+    'firstKillTG','vehicleSpawnKillsTG','bomberBombsKillsTG',
+    'mpbGlitchTG','repairsTG','repairpackpickupCountTG',
+    'depStationDestroysTG','depTurretDestroysTG','depSensorDestroysTG',
+    'genDefendsTG','genDestroysTG','genRepairsTG',
+    'flagCatchTG','flagCatchSpeedMax','flagTossTG',
+    'maFlagCatchTG','maFlagCatchSpeedMax','flagTossCatchTG',
+    'interceptedFlagTG','maInterceptedFlagTG','interceptSpeedMax',
+  ],
+  // LCTFGame: winLostPctAvg overwritten by scoreAvg at [0]; restored here.
+  // T2 count=47, floor(47/3)=15 rows → 45 rendered; firstKillTG/lastKillTG/deathKillsTG
+  // at T2 indices [44-46] were beyond the render window. Expanded to 48 entries (16 rows).
+  LCTFGame: [
+    'winLostPctAvg',          // [0]: restored (lost to T2 overwrite)
+    'scoreAvg','scoreMax',
+    'capEfficiencyAvg','assistTG','voteCountTG',
+    'teamkillCountTG','killStreakMax','kdrAvg',
+    'totalWepDmgTG','blasterReflectKillTG','distMovTG',
+    'blasterKillsTG','timeTLAvg','maxSpeedMax',
+    'lagSpikesTG','switchteamCountTG','discJumpTG',
+    'EVKillsTG','idleTimeTG','lightningKillsTG',
+    'airTimeTG','groundTimeTG','distMovTG',
+    'totalMATG','shotsFiredTG','shockRearShotTG',
+    'discReflectKillTG','ctrlKKillsTG','deathKillsTG',
+    'multiKillTG','doubleKillTG','tripleKillTG',
+    'flagTimeMinTG','OffKillsTG','DefKillsTG',
+    'maHitDistMax','groundDeathsTG','deadDistMax',
+    'minePlusDiscTG','minePlusDiscKillTG','maHitHeightMax',
+    'discReflectHitTG','discReflectKillTG','killerDiscJumpTG',
+    'firstKillTG','lastKillTG','deathKillsTG', // beyond T2's 15-row render – now included
+  ],
+  // SCtFGame: identical panelThree layout to LCTFGame
+  SCtFGame: [
+    'winLostPctAvg',          // [0]: restored (lost to T2 overwrite)
+    'scoreAvg','scoreMax',
+    'capEfficiencyAvg','assistTG','voteCountTG',
+    'teamkillCountTG','killStreakMax','kdrAvg',
+    'totalWepDmgTG','blasterReflectKillTG','distMovTG',
+    'blasterKillsTG','timeTLAvg','maxSpeedMax',
+    'lagSpikesTG','switchteamCountTG','discJumpTG',
+    'EVKillsTG','idleTimeTG','lightningKillsTG',
+    'airTimeTG','groundTimeTG','distMovTG',
+    'totalMATG','shotsFiredTG','shockRearShotTG',
+    'discReflectKillTG','ctrlKKillsTG','deathKillsTG',
+    'multiKillTG','doubleKillTG','tripleKillTG',
+    'flagTimeMinTG','OffKillsTG','DefKillsTG',
+    'maHitDistMax','groundDeathsTG','deadDistMax',
+    'minePlusDiscTG','minePlusDiscKillTG','maHitHeightMax',
+    'discReflectHitTG','discReflectKillTG','killerDiscJumpTG',
+    'firstKillTG','lastKillTG','deathKillsTG', // beyond T2's 15-row render – now included
+  ],
+  // LakRabbitGame: scoreTG overwritten by scoreAvg at [0]; restored here.
+  // firstKillTG/lastKillTG/deathKillsTG were beyond the 15-row render window. Expanded to 48.
+  LakRabbitGame: [
+    'scoreTG',                // [0]: restored (lost to T2 overwrite)
+    'scoreAvg','scoreMax',
+    'killsTG','assistTG','voteCountTG',
+    'morepointsTG','killStreakMax','kdrAvg',
+    'totalWepDmgTG','blasterReflectKillTG','distMovTG',
+    'blasterKillsTG','timeTLAvg','maxSpeedMax',
+    'lagSpikesTG','outOfBoundDeathsTG','discJumpTG',
+    'EVKillsTG','idleTimeTG','kdrAvg',
+    'airTimeTG','groundTimeTG','distMovTG',
+    'masTG','killGroundTG','chatallCountTG',
+    'multiKillTG','chainKillTG','deathKillsTG',
+    'doubleKillTG','tripleKillTG','quadrupleKillTG',
+    'discDmgTG','plasmaDmgTG','shockDmgTG',
+    'maHitDistMax','groundDeathsTG','deadDistMax',
+    'minePlusDiscTG','minePlusDiscKillTG','maHitHeightMax',
+    'discReflectHitTG','discReflectKillTG','killerDiscJumpTG',
+    'firstKillTG','lastKillTG','deathKillsTG', // beyond T2's 15-row render – now included
+  ],
+  // ArenaGame: scoreTG overwritten by scoreMax at [0]; restored here.
+  // T2 count=38, floor(38/3)=12 rows → 36 rendered; discReflectHitTG/discReflectKillTG/
+  // killerDiscJumpTG at T2 indices [36-38] were beyond the render window. Expanded to 39 entries
+  // (13 rows) so all three are now shown.
+  ArenaGame: [
+    'scoreTG',                // [0]: restored (lost to T2 overwrite)
+    'scoreMax','voicebindsallCountTG',
+    'killsTG','totalWepDmgTG','voteCountTG',
+    'hatTricksTG','killStreakMax','kdrAvg',
+    'ctrlKKillsTG','blasterReflectKillTG','distMovTG',
+    'timeTLAvg','maxSpeedMax','discJumpTG',
+    'lagSpikesTG','outOfBoundDeathsTG','teamkillCountTG',
+    'EVKillsTG','idleTimeTG','firstKillTG',
+    'airTimeTG','groundTimeTG','lastKillTG',
+    'totalMATG','groundKillsTG','chatallCountTG',
+    'concussHitTG','maHitDistMax','maHitHeightMax',
+    'armorLKTG','armorMKTG','roundsWonTG',
+    'groundDeathsTG','deadDistMax','deathKillsTG',
+    'discReflectHitTG','discReflectKillTG','killerDiscJumpTG', // beyond T2's 12-row render – now included
+  ],
+  // DefaultGame: scoreTG overwritten by voicebindsallCountTG at [0]; restored here.
+  // firstKillTG/lastKillTG/deathKillsTG were beyond the 15-row render window. Expanded to 48.
+  DefaultGame: [
+    'scoreTG',                // [0]: restored (lost to T2 overwrite)
+    'voicebindsallCountTG','flipflopCountTG',
+    'killsTG','assistTG','voteCountTG',
+    'morepointsTG','killStreakMax','kdrAvg',
+    'totalWepDmgTG','blasterReflectKillTG','distMovTG',
+    'blasterKillsTG','timeTLAvg','maxSpeedMax',
+    'lagSpikesTG','outOfBoundDeathsTG','discJumpTG',
+    'EVKillsTG','idleTimeTG','teamkillCountTG',
+    'airTimeTG','groundTimeTG','lightningKillsTG',
+    'masTG','killGroundTG','chatallCountTG',
+    'multiKillTG','chainKillTG','deathKillsTG',
+    'doubleKillTG','tripleKillTG','quadrupleKillTG',
+    'armorLKTG','armorMKTG','armorHKTG',
+    'maHitDistMax','groundDeathsTG','deadDistMax',
+    'minePlusDiscTG','minePlusDiscKillTG','maHitHeightMax',
+    'discReflectHitTG','discReflectKillTG','killerDiscJumpTG',
+    'firstKillTG','lastKillTG','deathKillsTG', // beyond T2's 15-row render – now included
+  ],
+};
+
+// Small panels: 8 cols × 3 rows, listed in left-to-right, top-to-bottom order.
+// The script's r starts at -1 (blank), so array[0] is always '' and real data starts at array[1].
+// The first script assignment uses a plain write then an overwriting post-increment, so the true
+// first item is the SECOND value on that line; array[0] here is '' to represent the r=-1 blank.
+const SMALL_PANELS = {
+  // CTFGame: flagGrabsTG overwrites flagCapsTG at array[0] in the T2 script; we restore
+  // flagCapsTG here at position [0] (xc=0, y=0) so the blank slot is used productively.
+  CTFGame: [
+    /* row 0 */ 'flagCapsTG','flagGrabsTG','flagReturnsTG','carrierKillsTG','grabSpeedAvg','lagSpikesTG','escortAssistsTG','distMovTG',
+    /* row 1 */ 'roadKillsTG','shrikeBlasterKillsTG','defenseScoreTG','repairsTG','discMATG','discKillsTG','offenseScoreTG','shockKillsTG',
+    /* row 2 */ 'shockRearShotTG','cgKillsTG','totalTimeTG','flagDefendsTG','laserKillsTG','laserHeadShotTG','minePlusDiscTG','mortarKillsTG',
+  ],
+  // LCTFGame: offenseScoreTG overwritten by defenseScoreTG at [0]; restored here.
+  LCTFGame: [
+    /* row 0 */ 'offenseScoreTG','defenseScoreTG','flagCapsTG','flagGrabsTG','flagReturnsTG','carrierKillsTG','escortAssistsTG','flagDefendsTG',
+    /* row 1 */ 'grabSpeedAvg','concussHitTG','flagTossTG','flagCatchTG','maFlagCatchTG','flagTossCatchTG','interceptedFlagTG','maInterceptedFlagTG',
+    /* row 2 */ 'totalTimeTG','plasmaKillsTG','cgKillsTG','discKillsTG','grenadeKillsTG','shockKillsTG','mineKillsTG','hGrenadeKillsTG',
+  ],
+  // SCtFGame: identical small-panel layout to LCTFGame
+  SCtFGame: [
+    /* row 0 */ 'offenseScoreTG','defenseScoreTG','flagCapsTG','flagGrabsTG','flagReturnsTG','carrierKillsTG','escortAssistsTG','flagDefendsTG',
+    /* row 1 */ 'grabSpeedAvg','concussHitTG','flagTossTG','flagCatchTG','maFlagCatchTG','flagTossCatchTG','interceptedFlagTG','maInterceptedFlagTG',
+    /* row 2 */ 'totalTimeTG','plasmaKillsTG','cgKillsTG','discKillsTG','grenadeKillsTG','shockKillsTG','mineKillsTG','hGrenadeKillsTG',
+  ],
+  // LakRabbitGame: flagGrabsTG overwritten by flagTimeMinTG at [0]; restored here.
+  LakRabbitGame: [
+    /* row 0 */ 'flagGrabsTG','flagTimeMinTG','MidairflagGrabsTG','totalTimeTG','discKillsTG','plasmaKillsTG','grenadeKillsTG','mortarKillsTG',
+    /* row 1 */ 'blasterMATG','blasterMAHitDistMax','plasmaMATG','plasmaMAHitDistMax','grenadeMATG','grenadeMAHitDistMax','shockACCAvg','plasmaACCAvg',
+    /* row 2 */ 'discMATG','discMAHitDistMax','discACCAvg','shockKillsTG','shockMATG','shockRearShotTG','hGrenadeKillsTG','mineKillsTG',
+  ],
+  // ArenaGame: discKillGroundTG overwritten by discKillsTG at [0]; restored here.
+  ArenaGame: [
+    /* row 0 */ 'discKillGroundTG','discKillsTG','discMATG','discMAHitDistMax','laserKillsTG','laserHeadShotTG','laserHitDistMax','totalTimeTG',
+    /* row 1 */ 'hGrenadeKillsTG','shockKillsTG','shockMATG','shockRearShotTG','grenadeKillsTG','grenadeMATG','grenadeMAHitDistMax','lArmorTimeTG',
+    /* row 2 */ 'assistTG','plasmaKillsTG','plasmaMATG','plasmaMAHitDistMax','blasterKillsTG','blasterMATG','blasterMAHitDistMax','mArmorTimeTG',
+  ],
+  // DefaultGame: scoreAvg overwritten by scoreMax at [0]; restored here.
+  DefaultGame: [
+    /* row 0 */ 'scoreAvg','scoreMax','distMovTG','totalTimeTG','discKillsTG','plasmaKillsTG','grenadeKillsTG','mortarKillsTG',
+    /* row 1 */ 'blasterMATG','blasterMAHitDistMax','plasmaMATG','plasmaMAHitDistMax','grenadeMATG','grenadeMAHitDistMax','shockACCAvg','plasmaACCAvg',
+    /* row 2 */ 'discMATG','discMAHitDistMax','discACCAvg','shockKillsTG','shockMATG','shockRearShotTG','hGrenadeKillsTG','mineKillsTG',
+  ],
+};
+
+// gmData left/right side-column stat list (renderCTFMapTextTM left/right columns).
+// Keep this list to ≤29 rows so the weapon table fits below within the canvas height.
+const GM_STAT_ROWS = [
+  { label:'Flag Grabs:',          key:'flagGrabsTG' },
+  { label:'Flag Caps:',           key:'flagCapsTG' },
+  { label:'Flag Grab Speed:',     key:'grabSpeedMax' },
+  { label:'Flag Catch:',          key:'flagCatchTG' },
+  { label:'Carrier Kills:',       key:'carrierKillsTG' },
+  { label:'Flag Defends:',        key:'flagDefendsTG' },
+  { label:'Escort Assists:',      key:'escortAssistsTG' },
+  { label:'Flags Thrown:',        key:'flagTossTG' },
+  { label:'Flag Returns:',        key:'flagReturnsTG' },
+  { label:'Flag Concuss:',        key:'concussFlagTG' },
+  { label:'Offensive Kills:',     key:'OffKillsTG' },
+  { label:'Defensive Kills:',     key:'DefKillsTG' },
+  { label:'Repairs:',             key:'repairsTG' },
+  { label:'Destruction:',         key:'destructionTG' },
+  { label:'Gens Destroyed:',      key:'genDestroysTG' },
+  { label:'Gen Repairs:',         key:'genSolRepairsTG' },
+  { label:'Indoor Turret Kills:', key:'indoorDepTurretKillsTG' },
+  { label:'Outdoor Turret Kills:',key:'outdoorDepTurretKillsTG' },
+  { label:'Deploy Invy Use:',     key:'depInvyUseTG' },
+  { label:'Inventorys Deployed:', key:'InventoryDepTG' },
+  { label:'Kill Assist:',         key:'assistTG' },
+  { label:'Distance Moved:',      key:'distMovTG' },
+  { label:'Highest Avg Speed:',   key:'avgSpeedAvg' },
+  { label:'Highest Top Speed:',   key:'maxSpeedMax' },
+  { label:'Sensors Deployed:',    key:'SensorsDepTG' },
+  { label:'Shield Block Damage:', key:'shieldPackDmgTG' },
+  { label:'Stealth Kills:',       key:'cloakerKillsTG' },
+  { label:'Cloakers Killed:',     key:'cloakersKilledTG' },
+  { label:'Sensor Jammer:',       key:'jammerTG' },
+];
+
+// gmData bottom grid: miscellaneous per-game stats rendered below the weapon table.
+// Rendered 4 per row in a compact grid spanning the full canvas width.
+// Dynamic right-panel stats rendered alongside the weapon table (mirrors $imgStatList in
+// z_dtStatsImgGen.cs).  Only entries whose overall (team-0) data value is non-zero are
+// displayed; max 28 entries are shown in 2 side-by-side columns.
+const GM_IMG_STAT_LIST = [
+  { label:'Road Kills:',          key:'roadKillsTG' },
+  { label:'Shots Fired:',         key:'shotsFiredTG' },
+  { label:'Weapon Combos:',       key:'comboCountTG' },
+  { label:'Highest MidAir:',      key:'maHitHeightMax' },
+  { label:'Fastest MidAir:',      key:'maHitSVMax' },
+  { label:'Rabbit Hunter:',       key:'maHitVVMax' },
+  { label:'Best Cap Time:',       key:'heldTimeSecMin' },
+  { label:'Stalemate Returns:',   key:'stalemateReturnTG' },
+  { label:'MA Flag Catch:',       key:'maFlagCatchTG' },
+  { label:'MidAir Flag Speed:',   key:'maFlagCatchSpeedMax' },
+  { label:'Flag Pass:',           key:'flagTossCatchTG' },
+  { label:'Flag Intercepts:',     key:'interceptedFlagTG' },
+  { label:'Flag MA Intercepts:',  key:'maInterceptedFlagTG' },
+  { label:'Intercept Speed:',     key:'interceptSpeedMax' },
+  { label:'Flag Speed Grab:',     key:'interceptFlagSpeedMax' },
+  { label:'Air Time:',            key:'airTimeTG' },
+  { label:'Ground Time:',         key:'groundTimeTG' },
+  { label:'First Kill:',          key:'firstKillTG' },
+  { label:'Last Kill:',           key:'lastKillTG' },
+  { label:'Inventory Kills:',     key:'inventoryKillsTG' },
+  { label:'Inventory Deaths:',    key:'inventoryDeathsTG' },
+  { label:'Best Avg KDR:',        key:'kdrAvg' },
+  { label:'Killstreaks:',         key:'killStreakTG' },
+  { label:'Explosion Kills:',     key:'explosionKillsTG' },
+  { label:'Ground Kills:',        key:'groundKillsTG' },
+  { label:'Lava Kills:',          key:'lavaKillsTG' },
+  { label:'Disc Jumps:',          key:'discJumpTG' },
+  { label:'Double Kills:',        key:'doubleKillTG' },
+  { label:'Triple Kills:',        key:'tripleKillTG' },
+  { label:'Repair Pack Pickup:',  key:'repairpackpickupCountTG' },
+  { label:'Dialup Connection:',   key:'lagSpikesTG' },
+  { label:'Total Damage:',        key:'totalWepDmgTG' },
+  { label:'Kills While Dead:',    key:'deathKillsTG' },
+  { label:'Kills As Light:',      key:'armorLKTG' },
+  { label:'Kills As Medium:',     key:'armorMKTG' },
+  { label:'Kills As Heavy:',      key:'armorHKTG' },
+  { label:'Light Armor Kills:',   key:'armorLTG' },
+  { label:'Medium Armor Kills:',  key:'armorMTG' },
+  { label:'Heavy Armor Kills:',   key:'armorHTG' },
+];
+
+// ─── File parsing ─────────────────────────────────────────────────────────────
+
+function splitLine(line) {
+  return line.split('%t');
+}
+
+function detectType(filename) {
+  const f = filename.replace(/\\/g, '/').split('/').pop();
+  if (/g\.cs$/i.test(f)) return 'gmData';
+  if (/t\.cs$/i.test(f)) return 'lData';
+  return 'unknown';
+}
+
+function parseTcsDate(dateStr) {
+  // T.cs date format: 'DD MM YYYY HH MM'  (day month year hour minute)
+  const p = dateStr.trim().split(/\s+/);
+  if (p.length >= 3) {
+    const day   = parseInt(p[0], 10);
+    const mon   = parseInt(p[1], 10);
+    const year  = p[2];
+    const hour  = p[3] !== undefined ? p[3] : '';
+    const min   = p[4] !== undefined ? String(p[4]).padStart(2, '0') : '';
+    const mname = (mon >= 1 && mon <= 12) ? MONTH_NAMES[mon - 1] : String(mon);
+    return `${mname} ${day}, ${year}${hour ? ` ${hour}:${min}` : ''}`;
+  }
+  return dateStr;
+}
+
+function parseLData(content, filename) {
+  const base  = filename.replace(/\.cs$/i, '');
+  const parts = base.split('-').filter(p => p.trim() !== '');
+
+  // Detect T.cs files: last segment is 'T' (e.g. '-CTFGame-04 04 2026 1 16-T.cs')
+  // vs lData files:    '-CTFGame-1-2026-month-.cs'
+  let meta;
+  if (parts.length >= 2 && /^T$/i.test(parts[parts.length - 1])) {
+    // T.cs single-game result: segments are [gameType, 'DD MM YYYY HH MM', 'T']
+    const dateRaw = parts.slice(1, -1).join('-');
+    meta = {
+      gameType: parts[0] || 'CTFGame',
+      dateStr:  parseTcsDate(dateRaw),
+      lType:    'tcs',
+    };
+  } else {
+    // lData aggregate: [gameType, mon, year, lType]
+    meta = {
+      gameType: parts[0] || 'CTFGame',
+      mon:      parts[1] || '1',
+      year:     parts[2] || '2026',
+      lType:    parts[3] || 'month',
+    };
+  }
+
+  const stats = {};
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const fields = splitLine(line);
+    if (fields.length < 3) continue;
+
+    // Two tab-separated formats exist:
+    //   lData : statKey %t (name|data|guid) %t values…   → fields[0] = stat key
+    //   T.cs  : (name|data|guid) %t statKey %t values…   → fields[0] = type keyword
+    let statKey, dataType, values;
+    if (fields[0] === 'name' || fields[0] === 'data' || fields[0] === 'guid') {
+      dataType = fields[0];
+      statKey  = fields[1];
+      values   = fields.slice(2);
+    } else {
+      statKey  = fields[0];
+      dataType = fields[1];
+      values   = fields.slice(2);
+    }
+
+    if (dataType === 'guid') continue;
+    if (!stats[statKey]) stats[statKey] = {};
+    stats[statKey][dataType] = values.filter(v => v.trim() !== '');
+  }
+  return { meta, stats };
+}
+
+function parseGmData(content) {
+  const lines = content.split('\n');
+  if (!lines.length) return null;
+
+  const hf = splitLine(lines[0].trim());
+  const header = {
+    mapName:   hf[0] || '',
+    gameType:  hf[1] || 'CTFGame',
+    timestamp: hf[2] || '',
+    date:      hf[3] || '',
+    score:     hf[4] || '0 0',
+  };
+
+  const scoreboard = {};   // [teamNum] = { name:[], score:[], off:[], def:[], kills:[] }
+  const statData   = {};   // [statKey][teamNum] = { name:[], data:[], team:[] }
+
+  const scoreboardKeys = new Set(['score', 'off', 'def', 'kills']);
+  const statSuffix = /TG$|Max$|Avg$|Min$|MinI$|AvgI$/;
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const fields = splitLine(line);
+    if (fields.length < 3) continue;
+
+    const teamNum = parseInt(fields[0]);
+    if (isNaN(teamNum)) continue;
+    const key   = fields[1];
+    const third = fields[2];
+
+    const isStatBreakdown = statSuffix.test(third);
+
+    if (!isStatBreakdown && key === 'name') {
+      if (!scoreboard[teamNum]) scoreboard[teamNum] = {};
+      scoreboard[teamNum].name = fields.slice(2);
+    } else if (!isStatBreakdown && scoreboardKeys.has(key)) {
+      if (!scoreboard[teamNum]) scoreboard[teamNum] = {};
+      scoreboard[teamNum][key] = fields.slice(2);
+    } else if (isStatBreakdown) {
+      const sk = third;
+      if (!statData[sk])           statData[sk] = {};
+      if (!statData[sk][teamNum])  statData[sk][teamNum] = {};
+      if (key === 'name') {
+        statData[sk][teamNum].name = fields.slice(3);
+      } else if (key === 'data') {
+        statData[sk][teamNum].data = fields.slice(3);
+      } else if (key === 'team') {
+        statData[sk][teamNum].team = fields.slice(3).map(Number);
+      }
+    }
+  }
+  return { header, scoreboard, statData };
+}
+
+// ─── Background rendering ─────────────────────────────────────────────────────
+
+function lerp255(a, b, t) {
+  return Math.floor(a + (b - a) * (t < 0 ? 0 : t > 1 ? 1 : t));
+}
+
+// imgCycle background – matches the script exactly
+function renderBgLData(ctx, W, H) {
+  const d = ctx.createImageData(W, H).data;
+  // use a separate buffer for speed
+  const buf = new Uint8ClampedArray(W * H * 4);
+
+  const PX_SMALL = 161, PY = 330, PX_BIG = 483;
+  const BORDER = 45, HDR = 42;
+  let py = 0;
+
+  for (let y = 0; y < H; y++) {
+    if (y > BORDER + HDR + 3 && py < H - 124) py++;
+
+    const yc = y - 5;
+    const tO = Math.min(1, (y / H) * 1.5);
+    const tI = (y / H) * 0.25;
+
+    // Outer border lerp colours for this row
+    const rO = lerp255(32, 0, tO), gO = lerp255(60, 118, tO), bO = lerp255(69, 118, tO);
+    // Inner border lerp colours for this row
+    const rI = lerp255(0, 32, tI), gI = lerp255(150, 60, tI), bI = lerp255(160, 69, tI);
+
+    // Pre-compute which y-ranges apply
+    const outerLR_y  = yc >= 17 && yc <= H - 17;
+    const outerTB    = (yc >= 17 && yc <= 37) || (yc >= H - 37 && yc <= H - 17);
+    const innerLR_y  = yc >= 37 && yc <= H - 37;
+    const innerTB    = (yc >= 37 && yc <= 41) || (yc >= H - 41 && yc <= H - 37);
+    const hdrBand    = y > BORDER && (y - BORDER) < HDR;
+
+    let px = 0;
+
+    for (let x = 0; x < W; x++) {
+      let r = 20, g = 45, b = 45;
+      const xc = x - 1;
+
+      // Outer border ring (offset 22/17, borderSize 20)
+      if ((outerTB && xc >= 22 && xc <= W - 22) ||
+          (outerLR_y && ((xc >= 22 && xc <= 42) || (xc >= W - 42 && xc <= W - 22)))) {
+        r = rO; g = gO; b = bO;
+      }
+      // Inner border ring (offset 42/37, borderSize 4)
+      if ((innerTB && xc >= 42 && xc <= W - 42) ||
+          (innerLR_y && ((xc >= 42 && xc <= 46) || (xc >= W - 46 && xc <= W - 42)))) {
+        r = rI; g = gI; b = bI;
+      }
+      // Content panel area
+      if (x > BORDER && y > BORDER && px < W - 88) {
+        px++;
+        if (px > 2 && x < 1816) {
+          if (hdrBand) {
+            r = 33; g = 87; b = 97;
+          } else {
+            const pxMod = px > 484 ? (px % PX_SMALL) : (px % PX_BIG);
+            if (pxMod > 2 && (py % PY) > 2) { r = 33; g = 87; b = 97; }
+          }
+        }
+      }
+      const idx = (y * W + x) << 2;
+      buf[idx] = r; buf[idx + 1] = g; buf[idx + 2] = b; buf[idx + 3] = 255;
+    }
+  }
+  const imgData = new ImageData(buf, W, H);
+  ctx.putImageData(imgData, 0, 0);
+}
+
+// pugImgCycle2 background – matches the script exactly
+function renderBgGmData(ctx, W, H) {
+  const buf = new Uint8ClampedArray(W * H * 4);
+  const halfW = Math.round((48 + W - 45) / 2); // centre of content area (x=48..W-45)
+
+  for (let y = 0; y < H; y++) {
+    const yc = y - 5;
+    const tO = Math.min(1, (y / H) * 1.5);
+    const tI = (y / H) * 0.25;
+
+    const rO = lerp255(20, 0, tO), gO = lerp255(45, 118, tO), bO = lerp255(45, 118, tO);
+    const rI = lerp255(0, 20, tI), gI = lerp255(150, 45, tI), bI = lerp255(160, 45, tI);
+
+    const outerLR_y = yc >= 21 && yc <= H - 21;
+    const outerTB   = (yc >= 21 && yc <= 36) || (yc >= H - 36 && yc <= H - 21);
+    const innerLR_y = yc >= 37 && yc <= H - 37;
+    const innerTB   = (yc >= 37 && yc <= 41) || (yc >= H - 41 && yc <= H - 37);
+
+    for (let x = 0; x < W; x++) {
+      let r, g, b;
+      // Content fill
+      if (x >= 48 && x <= W - 45 && y >= 47 && y <= H - 20) {
+        if (x >= halfW && y < 780)      { r = 33; g = 86; b = 96; }
+        else if (x <= halfW && y < 780) { r = 29; g = 74; b = 82; }
+        else                            { r = 21; g = 55; b = 61; }
+      } else { r = 20; g = 45; b = 45; }
+
+      const xc = x - 1;
+      // Outer border ring (offset 26/21, borderSize 15)
+      if ((outerTB && xc >= 26 && xc <= W - 26) ||
+          (outerLR_y && ((xc >= 26 && xc <= 41) || (xc >= W - 41 && xc <= W - 26)))) {
+        r = rO; g = gO; b = bO;
+      }
+      // Inner border ring (offset 42/37, borderSize 4)
+      if ((innerTB && xc >= 42 && xc <= W - 42) ||
+          (innerLR_y && ((xc >= 42 && xc <= 46) || (xc >= W - 46 && xc <= W - 42)))) {
+        r = rI; g = gI; b = bI;
+      }
+      const idx = (y * W + x) << 2;
+      buf[idx] = r; buf[idx + 1] = g; buf[idx + 2] = b; buf[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(new ImageData(buf, W, H), 0, 0);
+}
+
+// ─── Text helpers ─────────────────────────────────────────────────────────────
+
+const FONT = (size) => `${size}px 'Roboto Condensed','Arial Narrow',sans-serif`;
+
+function glText(ctx, text, x, y, color, size, maxW) {
+  ctx.fillStyle = color;
+  ctx.font = FONT(size);
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  const s = String(text ?? '');
+  if (maxW !== undefined) ctx.fillText(s, x, y, maxW);
+  else ctx.fillText(s, x, y);
+}
+
+// Render text and return the pixel width it occupied
+function glInline(ctx, text, x, y, color, size, maxW) {
+  ctx.fillStyle = color;
+  ctx.font = FONT(size);
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  const s = String(text ?? '');
+  if (maxW !== undefined) ctx.fillText(s, x, y, maxW);
+  else ctx.fillText(s, x, y);
+  return ctx.measureText(s).width;
+}
+
+// Format a value: if it parses as a float with a fractional part, round to 1 decimal.
+function fmtVal(v) {
+  if (v === null || v === undefined || v === '') return '';
+  const s = String(v).trim();
+  const n = parseFloat(s);
+  if (isNaN(n) || !s.includes('.')) return s;
+  return n.toFixed(1);
+}
+
+// ─── Data accessor helpers ─────────────────────────────────────────────────────
+
+function topName(stats, key) {
+  const s = stats && stats[key];
+  if (!s || !s.name || !s.name.length || s.name[0] === 'NA') return '';
+  return s.name[0] || '';
+}
+
+function gmTopName(statData, key, team) {
+  const d = statData && statData[key] && statData[key][team];
+  if (!d || !d.name || !d.name.length || d.name[0] === 'NA') return '';
+  return d.name[0] || '';
+}
+
+function gmTopVal(statData, key, team) {
+  const d = statData && statData[key] && statData[key][team];
+  if (!d || !d.data || !d.data.length) return '';
+  return d.data[0] || '';
+}
+
+// ─── lData rendering ──────────────────────────────────────────────────────────
+
+function renderLData(ctx, { meta, stats }) {
+  const { gameType, mon, year, lType, dateStr } = meta;
+  const W = CW_LDATA, H = CH;
+  const SZ = 15, XO = 52, YO = 76;
+
+  // ── Background ──
+  renderBgLData(ctx, W, H);
+
+  // ── Header (centred, 30px) ──
+  const gtName = GAME_TYPE_LABELS[gameType] || gameType;
+  let hdr;
+  if (lType === 'tcs') {
+    // Single-game T.cs result: show game type + parsed date
+    hdr = `${gtName} - ${dateStr || ''}`;
+  } else {
+    const monNum    = parseInt(mon, 10);
+    const monthName = (monNum >= 1 && monNum <= 12) ? MONTH_NAMES[monNum - 1] : mon;
+    hdr = lType === 'month'
+      ? `${gtName} - ${monthName} ${year}`
+      : `${gtName} - ${mon}`;
+  }
+
+  ctx.font = FONT(30);
+  ctx.fillStyle = CYAN;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(hdr, W / 2, 50);
+  ctx.textAlign = 'left';
+
+  // Resolve game type for panel lookups (fall back to DefaultGame)
+  const game = (SMALL_PANELS[gameType] ? gameType : 'DefaultGame');
+
+  // ── Score / Kills panels (panel row 0, y=76..405) ──
+  glText(ctx, '#. Score', XO,         20 + YO, CYAN, SZ);
+  glText(ctx, 'Total',    160 + XO,   20 + YO, CYAN, SZ);
+  glText(ctx, 'Kills',    240 + XO,   20 + YO, CYAN, SZ);
+  glText(ctx, 'Total',    400 + XO,   20 + YO, CYAN, SZ);
+
+  for (let x = 0; x < 2; x++) {
+    const key   = x === 0 ? 'scoreTG' : 'killsTG';
+    const s     = stats[key] || {};
+    const names = s.name || [], vals = s.data || [];
+    for (let i = 0; i < Math.min(15, names.length); i++) {
+      const ry = 20 * (i + 2) + YO;
+      glText(ctx, `${i + 1}. ${names[i] || ''}`, XO + x * 240, ry, CYAN, SZ, 150);
+      glText(ctx, fmtVal(vals[i]),                160 + XO + x * 240, ry, TEAL, SZ);
+    }
+  }
+
+  // ── Upper weapon panel (panel row 1, y=406..735) ──
+  // The script reads r starting at -1, so the first cell (r=-1) is blank.
+  // UPPER_WEP_PANELS[game] already encodes this with '' at index 0.
+  const uwp = UPPER_WEP_PANELS[game] || [];
+  // uwpCount = floor(panelCount/3) – computed from array length (CTFGame/DefaultGame=3, LCTFGame/SCtFGame/LakRabbitGame=7, ArenaGame=4)
+  const uwpCount = Math.floor(uwp.length / 3);
+  let r = 0; // index into uwp array
+  for (let xc = 0; xc < 3; xc++) {
+    for (let i = 0; i < uwpCount; i++, r++) {
+      const varname = uwp[r] || '';
+      const ry = (19 * (i + 1) + YO) + 330;
+      if (varname) {
+        const label = (STAT_LABEL[varname] || varname) + ': ';
+        const pw = glInline(ctx, label, XO + xc * 160, ry, CYAN, SZ, 500);
+        glText(ctx, fmtVal(topName(stats, varname)) || 'NA', XO + xc * 160 + pw, ry, TEAL, SZ, Math.max(5, 155 - pw));
+      }
+    }
+  }
+
+  // ── Weapon column headers + grid ──
+  // After the 3×3 upper panel loop, i=3 (the %i after the loop in the script)
+  const wepDef = WEAPON_GRID[game] || WEAPON_GRID.DefaultGame;
+  const wepHdrY = (19 * (uwpCount + 1) + YO) + 330; // i=3 in script
+  const TS = 95; // tabspace
+
+  glText(ctx, 'Weapon',           XO,         wepHdrY, CYAN, SZ);
+  (wepDef.headers || []).forEach((h, ci) => glText(ctx, h, TS * (ci + 1) + XO, wepHdrY, CYAN, SZ));
+
+  wepDef.weapons.forEach((wep, wi) => {
+    const ry = (19 * (uwpCount + 2 + wi) + YO) + 330;
+    glText(ctx, wep.name, XO, ry, CYAN, SZ, 90);
+    (wep.cols || []).forEach((sk, ci) => glText(ctx, fmtVal(topName(stats, sk)), TS * (ci + 1) + XO, ry, TEAL, SZ, 90));
+  });
+
+  // ── panelThree (panel row 2, y=736..1115) ──
+  const p3 = PANEL_THREE[game] || [];
+  const p3Rows = Math.floor(p3.length / 3);
+  let pr = 0;
+  for (let i = 0; i < p3Rows; i++) {
+    for (let xc = 0; xc < 3; xc++, pr++) {
+      const varname = p3[pr] || '';
+      const ry = (20 * (i + 1) + YO) + 2 * 330;
+      if (varname) {
+        const label = (STAT_LABEL[varname] || varname) + ': ';
+        const pw = glInline(ctx, label, XO + xc * 160, ry, CYAN, SZ, 500);
+        glText(ctx, fmtVal(topName(stats, varname)) || 'NA', XO + xc * 160 + pw, ry, TEAL, SZ, Math.max(5, 155 - pw));
+      }
+    }
+  }
+
+  // ── Small panels (8 cols × 3 rows, starting at x=531) ──
+  const sp = SMALL_PANELS[game] || [];
+  let spr = 0;
+  for (let y = 0; y < 3; y++) {
+    for (let xc = 0; xc < 8; xc++, spr++) {
+      const varname = sp[spr] || '';
+      if (!varname) continue;
+      const panX = (531 + xc * 161) + 4;
+      const valX = 115 + 531 + xc * 161;
+      glText(ctx, '#. ' + (STAT_LABEL[varname] || varname), panX, (20 + YO) + y * 330, CYAN, SZ, 155);
+      const s     = stats[varname] || {};
+      const names = s.name || [], vals = s.data || [];
+      for (let i = 0; i < Math.min(15, names.length); i++) {
+        const nm = names[i];
+        if (!nm || nm === 'NA') break;
+        const ry = (20 * (i + 2) + YO) + y * 330;
+        glText(ctx, `${i + 1}. ${nm}`, panX, ry, CYAN, SZ, 110);
+        glText(ctx, fmtVal(vals[i]),    valX, ry, TEAL, SZ, 500);
+      }
+    }
+  }
+}
+
+// ─── gmData rendering ─────────────────────────────────────────────────────────
+
+function renderGmData(ctx, { header, scoreboard, statData }) {
+  const W = CW_GMDATA, H = CH;
+  const SZ = 15;
+
+  // ── Background ──
+  renderBgGmData(ctx, W, H);
+
+  // ── Map name header (centred, 32px "T2" → use Roboto Condensed) ──
+  let mapDisplay = (header.mapName || '')
+    .replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^'{|}~\t\n\r0-9]/g, '')
+    .replace(/-/g, ' ').replace(/_/g, ' ').trim().toUpperCase();
+
+  ctx.font = `32px 'Roboto Condensed','Arial Narrow',sans-serif`;
+  ctx.fillStyle = CYAN;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(mapDisplay + ' CTF', W / 2, 55);
+
+  // ── Date (centred, 12px) ──
+  ctx.font = FONT(12);
+  ctx.fillText(header.date || '', W / 2, 85);
+  ctx.textAlign = 'left';
+
+  // ── Team score (y=100, 30px) ──
+  const scoreParts = (header.score || '0 0').trim().split(/\s+/);
+  const t1Score = parseInt(scoreParts[0], 10) || 0;
+  const t2Score = parseInt(scoreParts[1], 10) || 0;
+  const JL = 402; // justLeft from script (centred at new W/2=682)
+
+  ctx.font = FONT(30);
+  ctx.fillStyle = CYAN;
+  glText(ctx, 'Storm',           JL,       100, CYAN, 30);
+  glText(ctx, String(t1Score),   JL + 100, 100, CYAN, 30);
+  glText(ctx, 'Inferno',         JL + 300, 100, CYAN, 30);
+  glText(ctx, String(t2Score),   JL + 400, 100, CYAN, 30);
+
+  // ── Scoreboard column headers (y=130) ──
+  glText(ctx, 'Player', JL,       130, CYAN, SZ);
+  glText(ctx, 'Score',  JL + 140, 130, CYAN, SZ);
+  glText(ctx, 'Off',    JL + 180, 130, CYAN, SZ);
+  glText(ctx, 'Def',    JL + 220, 130, CYAN, SZ);
+  glText(ctx, 'Kills',  JL + 260, 130, CYAN, SZ);
+  glText(ctx, 'Player', JL + 300, 130, CYAN, SZ);
+  glText(ctx, 'Score',  JL + 440, 130, CYAN, SZ);
+  glText(ctx, 'Off',    JL + 480, 130, CYAN, SZ);
+  glText(ctx, 'Def',    JL + 520, 130, CYAN, SZ);
+  glText(ctx, 'Kills',  JL + 560, 130, CYAN, SZ);
+
+  // ── Scoreboard rows ──
+  const t1 = scoreboard[1] || {}, t2 = scoreboard[2] || {};
+  const t1n = t1.name || [], t2n = t2.name || [];
+  const t1s = t1.score || [], t2s = t2.score || [];
+  const t1o = t1.off   || [], t2o = t2.off   || [];
+  const t1d = t1.def   || [], t2d = t2.def   || [];
+  const t1k = t1.kills || [], t2k = t2.kills || [];
+  const maxI = Math.min(32, Math.max(t1n.length, t2n.length));
+
+  for (let i = 0; i < maxI; i++) {
+    const ry = 150 + i * 20;
+    if (i < t1n.length) {
+      glText(ctx, `${i + 1}.${t1n[i] || ''}`, JL,       ry, CYAN, SZ, 130);
+      glText(ctx, fmtVal(t1s[i]),              JL + 140, ry, CYAN, SZ);
+      glText(ctx, fmtVal(t1o[i]),              JL + 180, ry, CYAN, SZ);
+      glText(ctx, fmtVal(t1d[i]),              JL + 220, ry, CYAN, SZ);
+      glText(ctx, fmtVal(t1k[i]),              JL + 260, ry, CYAN, SZ);
+    }
+    if (i < t2n.length) {
+      glText(ctx, `${i + 1}.${t2n[i] || ''}`, JL + 300, ry, CYAN, SZ, 130);
+      glText(ctx, fmtVal(t2s[i]),              JL + 440, ry, CYAN, SZ);
+      glText(ctx, fmtVal(t2o[i]),              JL + 480, ry, CYAN, SZ);
+      glText(ctx, fmtVal(t2d[i]),              JL + 520, ry, CYAN, SZ);
+      glText(ctx, fmtVal(t2k[i]),              JL + 560, ry, CYAN, SZ);
+    }
+  }
+
+  // ── Left stat panel (justLeft2=55, nameOffset=130, dataOffset=130) ──
+  const JL2 = 55, JLT2 = 1000;
+  const nameOff = 130, dataOff = 130;
+  let lc = 0, lc2 = 0;
+
+  function drawStatRow(justLeft, lineCount, label, key, team) {
+    const ry = 150 + lineCount * 20;
+    let v = justLeft;
+    glText(ctx, label, v, ry, CYAN, SZ);
+    v += nameOff;
+    glText(ctx, gmTopName(statData, key, team), v, ry, CYAN, SZ, 100);
+    v += dataOff;
+    glText(ctx, fmtVal(gmTopVal(statData, key, team)), v, ry, CYAN, SZ);
+  }
+
+  GM_STAT_ROWS.forEach(({ label, key }) => {
+    drawStatRow(JL2,  lc++,  label, key, 1);
+    drawStatRow(JLT2, lc2++, label, key, 2);
+  });
+
+  // ── Weapon grid ──
+  // WL matches the T2 script: 29 stat rows (lineCount 0..28, no ++ after last) then
+  // two lineCount++ and wepLineCount = lineCount++ → WL = GM_STAT_ROWS.length + 1 = 30.
+  // Weapon header at y = 150 + 30*20 = 750.
+  const WL = GM_STAT_ROWS.length + 1;
+  const kO = 50, kV = 160, mA = 200, mAV = 310, dmg = 355, dmgV = 465, dst = 510, dstV = 620;
+
+  const wepHdrY = 150 + (WL + 2) * 20;
+  glText(ctx, 'Weapons',     JL2,        wepHdrY, CYAN, SZ);
+  glText(ctx, 'Kills',       JL2 + kO,   wepHdrY, CYAN, SZ);
+  glText(ctx, 'MidAirs',     JL2 + mA,   wepHdrY, CYAN, SZ);
+  glText(ctx, 'MA Distance', JL2 + dmg,  wepHdrY, CYAN, SZ);
+  glText(ctx, 'Damage',      JL2 + dst,  wepHdrY, CYAN, SZ);
+
+  const gmWeapons = [
+    { name:'Blaster',   kills:'blasterKillsTG',  ma:'blasterMATG',  dist:'blasterMAHitDistMax', dmg:'blasterDmgTG'  },
+    { name:'Plasma',    kills:'plasmaKillsTG',   ma:'plasmaMATG',   dist:'plasmaMAHitDistMax',  dmg:'plasmaDmgTG'   },
+    { name:'Chaingun',  kills:'cgKillsTG',       ma:'cgMATG',       dist:'cgMAHitDistMax',      dmg:'cgDmgTG'       },
+    { name:'Spinfusor', kills:'discKillsTG',     ma:'discMATG',     dist:'discMAHitDistMax',    dmg:'discDmgTG'     },
+    { name:'Grenade',   kills:'grenadeKillsTG',  ma:'grenadeMATG',  dist:'grenadeMAHitDistMax', dmg:'grenadeDmgTG'  },
+    { name:'Laser',     kills:'laserKillsTG',    ma:'laserMATG',    dist:'laserMAHitDistMax',   dmg:'laserDmgTG'    },
+    { name:'Mortar',    kills:'mortarKillsTG',   ma:'mortarMATG',   dist:'mortarMAHitDistMax',  dmg:'mortarDmgTG'   },
+    { name:'Missile',   kills:'missileKillsTG',  ma:'missileMATG',  dist:'missileMAHitDistMax', dmg:'missileDmgTG'  },
+    { name:'Shock',     kills:'shockKillsTG',    ma:'shockMATG',    dist:'shockMAHitDistMax',   dmg:'shockDmgTG'    },
+  ];
+
+  gmWeapons.forEach(({ name, kills, ma, dist, dmg: dmgKey }, wi) => {
+    const ry = 150 + (WL + 3 + wi) * 20;
+    const t = 0; // team key 0 = overall/combined (matches $pugMapData[0,...] in the script)
+    glText(ctx, name,                                        JL2,         ry, CYAN, SZ);
+    glText(ctx, gmTopName(statData, kills, t)  || 'NA',      JL2 + kO,    ry, CYAN, SZ, 100);
+    glText(ctx, fmtVal(gmTopVal (statData, kills, t))  || 'NA', JL2 + kV, ry, CYAN, SZ, 100);
+    glText(ctx, gmTopName(statData, ma,    t)  || 'NA',      JL2 + mA,    ry, CYAN, SZ, 100);
+    glText(ctx, fmtVal(gmTopVal (statData, ma,    t))  || 'NA', JL2 + mAV, ry, CYAN, SZ, 100);
+    glText(ctx, gmTopName(statData, dist,  t)  || 'NA',      JL2 + dmg,   ry, CYAN, SZ, 100);
+    glText(ctx, fmtVal(gmTopVal (statData, dist,  t))  || 'NA', JL2 + dmgV, ry, CYAN, SZ, 100);
+    glText(ctx, gmTopName(statData, dmgKey, t) || 'NA',      JL2 + dst,   ry, CYAN, SZ, 100);
+    glText(ctx, fmtVal(gmTopVal (statData, dmgKey, t)) || 'NA', JL2 + dstV, ry, CYAN, SZ, 100);
+  });
+
+  // ── Right-side dynamic stats panel (mirrors $imgStatList loop in z_dtStatsImgGen.cs) ──
+  // Two columns: left at x=714, right at x=1034.  vehLineCount starts at WL+2 (two rows
+  // below the weapon header) and advances once per pair.  All entries shown; zero-value entries display NA.
+  const JL5 = 714, JL6 = 1014;
+  const nameOff5 = 140, nameOff6 = 125; // bumped right by ~one space vs. nameOffset (+10)
+  let vehLineCount = WL + 2;
+  let vc = 0;
+
+  for (const { label, key } of GM_IMG_STAT_LIST) {
+    if (vc >= 28) break;
+    const nm  = gmTopName(statData, key, 0);
+    const val = gmTopVal (statData, key, 0);
+    const ry = 150 + vehLineCount * 20;
+    if (vc % 2 === 0) {
+      let v = JL5;
+      glText(ctx, label,                   v,                      ry, CYAN, SZ, 150);
+      glText(ctx, nm  || 'NA',             v + nameOff5,           ry, TEAL, SZ, 100);
+      glText(ctx, fmtVal(val) || 'NA',     v + nameOff5 + dataOff, ry, TEAL, SZ, 130);
+    } else {
+      let v = JL6;
+      glText(ctx, label,                   v,                      ry, CYAN, SZ, 150);
+      glText(ctx, nm  || 'NA',             v + nameOff6,           ry, TEAL, SZ, 100);
+      glText(ctx, fmtVal(val) || 'NA',     v + nameOff6 + dataOff, ry, TEAL, SZ, 90);
+      vehLineCount++;
+    }
+    vc++;
+  }
+  // If final entry landed in the left column (vc is odd), it still occupies its row.
+  if (vc > 0 && vc % 2 !== 0) vehLineCount++;
+
+  // ── Minor weapons section (below main weapons + 2 blank rows, mirrors lines 5939-6005) ──
+  // wepLineCount after header(1) + 9 weapons(9) + 2 extra increments = WL + 12.
+  // y-base offset is 140 (not 150) matching the original script.
+  const minorWepLine = WL + 13;
+  const JL3 = JL2 + 355; // justLeft3 = justLeft2 + 355 = 410
+  const nameOff3 = nameOff - 15; // nameOffset + nameAdjust (-15) = 115
+
+  function drawMinorWepRow(wl, leftLabel, leftKey, rightLabel, rightKey) {
+    const ry = 140 + wl * 20;
+    let v = JL2;
+    glText(ctx, leftLabel,                        v,              ry, CYAN, SZ, 150);
+    glText(ctx, gmTopName(statData, leftKey, 0),  v + nameOff3,   ry, TEAL, SZ, 130);
+    glText(ctx, fmtVal(gmTopVal(statData, leftKey, 0)), v + nameOff3 + dataOff, ry, TEAL, SZ, 130);
+    v = JL3;
+    glText(ctx, rightLabel,                       v,              ry, CYAN, SZ, 150);
+    glText(ctx, gmTopName(statData, rightKey, 0), v + nameOff3,   ry, TEAL, SZ, 130);
+    glText(ctx, fmtVal(gmTopVal(statData, rightKey, 0)), v + nameOff3 + dataOff, ry, TEAL, SZ, 130);
+  }
+
+  // The T2 script has a copy-paste bug: 'Mine:' uses concussHitTG instead of mineKillsTG.
+  // We replicate the original behaviour faithfully.
+  drawMinorWepRow(minorWepLine,     'Hand Grenade:',    'hGrenadeKillsTG', 'Concuss Hits:',     'concussHitTG');
+  drawMinorWepRow(minorWepLine + 1, 'Mine:',            'concussHitTG',    'Mine + Disc:',       'minePlusDiscTG');
+  drawMinorWepRow(minorWepLine + 2, 'Satchel Charge:',  'satchelKillsTG',  'Sniper Head Shots:', 'laserHeadShotTG');
+  drawMinorWepRow(minorWepLine + 3, 'ELF Usage:',       'elfShotsFiredTG', 'Shock Rear Hits:',   'shockRearShotTG');
+}
+
+// ─── Main entry ───────────────────────────────────────────────────────────────
+
+const canvas      = document.getElementById('canvas');
+const controls    = document.getElementById('controls');
+const downloadBtn = document.getElementById('downloadBtn');
+const statusEl    = document.getElementById('status');
+const dropzone    = document.getElementById('dropzone');
+const fileInput   = document.getElementById('fileInput');
+
+// Default to lData canvas size; resized per file type when rendered
+canvas.width  = CW_LDATA;
+canvas.height = CH;
+const ctx = canvas.getContext('2d');
+
+// Scale the display canvas down so it fits the viewport
+function scaleCanvas() {
+  const maxW  = window.innerWidth - 32;
+  const scale = Math.min(1, maxW / canvas.width);
+  canvas.style.width  = `${Math.floor(canvas.width  * scale)}px`;
+  canvas.style.height = `${Math.floor(canvas.height * scale)}px`;
+}
+scaleCanvas();
+window.addEventListener('resize', scaleCanvas);
+
+function processFile(file) {
+  statusEl.textContent = `Parsing: ${file.name}…`;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const content = e.target.result;
+    try {
+      const type = detectType(file.name);
+      let parsed;
+      if (type === 'gmData') {
+        parsed = parseGmData(content);
+        if (!parsed) throw new Error('Could not parse gmData file.');
+      } else {
+        // lData or unknown – try lData
+        parsed = parseLData(content, file.name.split('/').pop().split('\\').pop());
+      }
+
+      document.fonts.ready.then(() => {
+        // Resize canvas to match the script's output dimensions
+        const W = type === 'gmData' ? CW_GMDATA : CW_LDATA;
+        if (canvas.width !== W || canvas.height !== CH) {
+          canvas.width  = W;
+          canvas.height = CH;
+        }
+        ctx.clearRect(0, 0, W, CH);
+        if (type === 'gmData') {
+          renderGmData(ctx, parsed);
+        } else {
+          renderLData(ctx, parsed);
+        }
+        scaleCanvas();
+        controls.classList.add('visible');
+        statusEl.textContent = `Ready · ${file.name}`;
+      });
+    } catch (err) {
+      statusEl.textContent = `Error: ${err.message}`;
+      console.error(err);
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Error reading file.'; };
+  reader.readAsText(file);
+}
+
+// Drag and drop
+dropzone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropzone.classList.add('drag-over');
+});
+dropzone.addEventListener('dragleave',  () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('dragenter', e => e.preventDefault());
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+});
+
+// Click to browse
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+});
+
+// Download
+downloadBtn.addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.download = 'leaderboard.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+});
+</script>
+</body>
+</html>
