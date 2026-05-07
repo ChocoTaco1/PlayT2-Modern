@@ -43,6 +43,8 @@
     <li><a href="#install">Install</a></li>
     <li><a href="#resources">Resources</a></li>
     <li><a href="servers.html">Servers</a></li>
+    <li class="nav-mobile-only"><a href="discord.html">Discord</a></li>
+    <li class="nav-mobile-only"><a href="config.html">Download ↗</a></li>
   </ul>
 
   <div class="navbar-actions">
@@ -354,6 +356,7 @@
         empty.innerHTML = '<span class="t-map">No servers online right now</span>';
         inner.appendChild(empty);
         inner.appendChild(empty.cloneNode(true));
+        setTickerSpeed(inner);
         return;
       }
 
@@ -363,6 +366,16 @@
           inner.appendChild(buildEntry(entries[i]));
         }
       }
+      setTickerSpeed(inner);
+    }
+
+    // Keep scroll speed constant at ~80px/s regardless of content width or screen size
+    function setTickerSpeed(inner) {
+      var PX_PER_SEC = 80;
+      // scrollWidth is the full content width; animation travels half of that (-50%)
+      var halfWidth = inner.scrollWidth / 2;
+      var duration  = Math.max(halfWidth / PX_PER_SEC, 5); // at least 5 s
+      inner.style.animationDuration = duration.toFixed(2) + 's';
     }
 
     function fetchAndPopulate() {
@@ -388,6 +401,11 @@
   /* Mobile nav */
   document.getElementById('navToggle').addEventListener('click', function() {
     document.getElementById('navLinks').classList.toggle('open');
+  });
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 900) {
+      document.getElementById('navLinks').classList.remove('open');
+    }
   });
 
   /* Smooth scroll */
