@@ -424,7 +424,12 @@ a {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 3rem;
-  margin-top: 3rem;
+  margin-top: 0;
+  align-items: start;
+}
+
+.resource-discord {
+  margin-top: 2rem;
 }
 
 .resource-block h4 {
@@ -584,12 +589,63 @@ a {
     gap: 1.2rem;
     border-bottom: 1px solid var(--border);
   }
+
+  .arsenal-header { flex-direction: column; align-items: flex-start; }
+  .deploy-grid    { grid-template-columns: 1fr; }
+
+  .section { padding: 4rem 1.5rem; }
+}
+
+@media (max-width: 600px) {
+  /* Weapons & vehicles become horizontal scroll rows */
+  .arsenal-scroll-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -1.5rem;
+    padding: 0 1.5rem 0.75rem;
+  }
+
+  .weapons-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    width: max-content;
+  }
+
+  .weapon-card {
+    min-width: 110px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    flex-shrink: 0;
+    padding: 1.25rem 0.75rem 1rem;
+  }
+
+  .vehicles-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+    width: max-content;
+  }
+
+  .vehicle-card {
+    min-width: 110px;
+    flex-shrink: 0;
+  }
 }
 
 @media (max-width: 480px) {
   .hero h1 { font-size: 2.2rem; }
   .btn-lg  { width: 100%; justify-content: center; }
   .btn-outline { width: 100%; justify-content: center; }
+
+  .section { padding: 3rem 1rem; }
+  .navbar  { padding: 0 1rem; }
+
+  .arsenal-scroll-wrap { margin: 0 -1rem; padding: 0 1rem 0.75rem; }
 }
 
 /* ─── SERVER TICKER ─────────────────────────────────────── */
@@ -685,7 +741,6 @@ a {
 /* Push footer up to clear bottom ticker when it's present */
 body.has-ticker .footer { padding-bottom: calc(30px + 1rem); }
 
-/* ─── ARSENAL ────────────────────────────────────────────── */
 .arsenal-section { background: var(--black); }
 
 .arsenal-header {
