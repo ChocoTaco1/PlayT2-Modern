@@ -301,22 +301,6 @@
 </footer>
 
 <script>
-  document.getElementById('navToggle').addEventListener('click', function () {
-    document.getElementById('navLinks').classList.toggle('open');
-  });
-  document.querySelectorAll('a[href^="#"]').forEach(function(a) {
-    a.addEventListener('click', function(e) {
-      var target = document.querySelector(this.getAttribute('href'));
-      if (target) {
-        e.preventDefault();
-        target.scrollIntoView({ behavior: 'smooth' });
-        document.getElementById('navLinks').classList.remove('open');
-      }
-    });
-  });
-</script>
-
-<script>
   /* ─── Server Ticker ──────────────────────────────────────── */
   (function() {
     var REFRESH_MS = 60000;  // re-fetch every 60 s
