@@ -107,6 +107,25 @@ img { display: block; max-width: 100%; }
   box-shadow: 0 0 20px var(--accent-glow);
 }
 
+.btn-ghost-nav {
+  padding: 0.5rem 1.2rem;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.btn-ghost-nav:hover { color: #fff; }
+
+.btn-primary-nav {
+  padding: 0.55rem 1.4rem;
+  background: var(--accent);
+  color: #0a1410;
+}
+
+.btn-primary-nav:hover {
+  background: #05f5b4;
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
 /* ── Navbar ─────────────────────────────────────────────── */
 .navbar {
   position: fixed;
@@ -1038,6 +1057,6 @@ pg { display: block; margin-bottom: 0.4rem; }
   .section { padding: 3rem 1rem; }
   .navbar  { padding: 0 1rem; }
 
-  .btn-ghost { display: none; }
-  .btn-primary { display: none; }
+  .btn-ghost-nav { display: none; }
+  .btn-primary-nav { display: none; }
 }
