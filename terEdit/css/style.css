@@ -199,6 +199,22 @@ header {
 .tool-btn:hover  { background: #303040; color: #eee; }
 .tool-btn.active { background: #18304e; border-color: #4a9eff; color: #7dcfff; }
 
+/* ie-brush-btn: same visual as tool-btn but used in imgedit panel */
+.ie-brush-btn {
+    background: #272730;
+    border: 1px solid #363640;
+    color: #bbb;
+    padding: 8px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.3;
+    transition: background 0.1s, color 0.1s;
+}
+.ie-brush-btn:hover  { background: #303040; color: #eee; }
+.ie-brush-btn.active { background: #18304e; border-color: #4a9eff; color: #7dcfff; }
+
 /* =========================================================================
    Slider controls
    ========================================================================= */
