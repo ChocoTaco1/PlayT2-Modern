@@ -999,7 +999,7 @@ pg { display: block; margin-bottom: 0.4rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ─── RESPONSIVE ─────────────────────────────────────────── */
-@media (max-width: 960px) {
+@media (max-width: 900px) {
   .modes-grid       { grid-template-columns: 1fr; }
   .mode-card:first-child { border-right: 0; border-bottom: 1px solid var(--border); }
   .weapons-grid     { grid-template-columns: repeat(3, 1fr); }
@@ -1028,4 +1028,16 @@ pg { display: block; margin-bottom: 0.4rem; }
   .hero h1          { font-size: 3.5rem; }
   .hero-stats       { gap: 1.5rem; }
   .deploy-header    { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 525px) {
+  .hero h1 { font-size: 2.2rem; }
+  .btn-lg  { width: 100%; justify-content: center; }
+  .btn-outline { width: 100%; justify-content: center; }
+
+  .section { padding: 3rem 1rem; }
+  .navbar  { padding: 0 1rem; }
+
+  .btn-ghost { display: none; }
+  .btn-primary { display: none; }
 }

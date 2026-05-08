@@ -637,7 +637,7 @@ a {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 525px) {
   .hero h1 { font-size: 2.2rem; }
   .btn-lg  { width: 100%; justify-content: center; }
   .btn-outline { width: 100%; justify-content: center; }
@@ -646,6 +646,9 @@ a {
   .navbar  { padding: 0 1rem; }
 
   .arsenal-scroll-wrap { margin: 0 -1rem; padding: 0 1rem 0.75rem; }
+
+  .btn-ghost { display: none; }
+  .btn-primary { display: none; }
 }
 
 /* ─── SERVER TICKER ─────────────────────────────────────── */
