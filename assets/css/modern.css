@@ -317,6 +317,11 @@ a {
   line-height: 1.8;
 }
 
+.section-text {
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
 /* ── Install cards ───────────────────────────────────────── */
 .install-grid {
   display: grid;
@@ -824,6 +829,31 @@ body.has-ticker .footer { padding-bottom: calc(30px + 1rem); }
 .weapon-role {
   font-size: 0.80rem;
   color: var(--text-muted);
+}
+
+.armor-window {
+  background: var(--bg-card);
+  padding: 2rem 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.8rem;
+  transition: background 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.armor-window2 {
+  padding: 2rem 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.8rem;
+  transition: background 0.2s;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Vehicles sub-grid */
