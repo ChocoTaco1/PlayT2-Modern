@@ -608,6 +608,7 @@ a {
     padding: 1.5rem 2rem;
     gap: 1.2rem;
     border-bottom: 1px solid var(--border);
+    margin-left: 0px;
   }
 
   .arsenal-header { flex-direction: column; align-items: flex-start; }
