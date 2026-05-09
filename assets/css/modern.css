@@ -71,6 +71,7 @@ a {
   gap: 2rem;
   list-style: none;
   text-align: center;
+  margin-left: 80px;
 }
 
 .navbar-links a {
