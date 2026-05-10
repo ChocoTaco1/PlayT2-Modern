@@ -812,6 +812,20 @@ body.has-ticker .footer { padding-bottom: calc(30px + 1rem); }
 .weapon-card:hover { background: var(--bg-card2); }
 .weapon-card:hover .weapon-img { filter: drop-shadow(0 0 14px rgba(0,255,136,0.6)) brightness(1.1); }
 
+.weapon-card2 {
+  padding: 2rem 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.8rem;
+  transition: background 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.weapon-card2:hover { background: var(--bg-card2); }
+.weapon-card2:hover .weapon-img { filter: drop-shadow(0 0 14px rgba(0,255,136,0.6)) brightness(1.1); }
+
 .weapon-img {
   width: 80px;
   height: 55px;
