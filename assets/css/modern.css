@@ -639,16 +639,11 @@ a {
     flex-wrap: nowrap;
     background: transparent;
     border: none;
-    border-radius: 0;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-    width: max-content;
+    width: 550px;
   }
 
   .weapon-card {
     min-width: 110px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
     flex-shrink: 0;
     padding: 1.25rem 0.75rem 1rem;
   }
@@ -656,13 +651,15 @@ a {
   .vehicles-grid {
     display: flex;
     flex-wrap: nowrap;
-    gap: 0.75rem;
-    width: max-content;
+    background: transparent;
+    border: none;
+    width: 620px;
   }
 
   .vehicle-card {
     min-width: 110px;
     flex-shrink: 0;
+    padding: 1.25rem 0.75rem 1rem;
   }
 }
 
@@ -673,8 +670,6 @@ a {
 
   .section { padding: 3rem 1rem; }
   .navbar  { padding: 0 1rem; }
-
-  .arsenal-scroll-wrap { margin: 0 -1rem; padding: 0 1rem 0.75rem; }
 
   .btn-ghost-nav { display: none; }
   .btn-primary-nav { display: none; }
@@ -827,8 +822,8 @@ body.has-ticker .footer { padding-bottom: calc(30px + 1rem); }
 .weapon-card2:hover .weapon-img { filter: drop-shadow(0 0 14px rgba(0,255,136,0.6)) brightness(1.1); }
 
 .weapon-img {
-  width: 80px;
-  height: 55px;
+  width: 100px;
+  height: auto;
   object-fit: contain;
   filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
   transition: filter 0.25s;
@@ -873,54 +868,56 @@ body.has-ticker .footer { padding-bottom: calc(30px + 1rem); }
   overflow: hidden;
 }
 
-/* Vehicles sub-grid */
-.vehicles-label {
-  font-family: 'Inter', 'Source Sans Pro', sans-serif;;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 1.2rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.75rem;
-}
 
+
+/* Gap-background technique: parent bg shows through the 1px gaps as grid lines.
+   No per-card border-right needed — responsive column changes just work. */
 .vehicles-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--bg);
+  border: 1px solid var(--bg-card);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 4rem;
 }
 
 .vehicle-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.5rem 1rem;
+  padding: 2rem 1rem 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.7rem;
   text-align: center;
-  transition: border-color 0.2s;
+  gap: 0.8rem;
+  transition: background 0.2s;
+  position: relative;
+  overflow: hidden;
 }
 .vehicle-card:hover { background: var(--bg-card2); }
-.vehicle-card:hover { border-color: rgba(0,255,136,0.3); }
 .vehicle-card:hover .vehicle-img { filter: drop-shadow(0 0 14px rgba(0,255,136,0.6)) brightness(1.1); }
 
 .vehicle-img {
-  width: 90px;
-  height: 55px;
+  width: 100px;
+  height: auto;
   object-fit: contain;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+  transition: filter 0.25s;
 }
 
 .vehicle-name {
   font-family: 'Inter', 'Source Sans Pro', sans-serif;;
   font-size: 0.8rem;
   font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #fff;
+}
+
+.vehicle-label {
+  font-size: 0.80rem;
+  color: var(--text-muted);
 }
 
 /* ─── INSTALL / DEPLOY ───────────────────────────────────── */
