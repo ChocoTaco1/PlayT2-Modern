@@ -564,6 +564,7 @@
 
   function sortServers(servers, col, dir) {
     return servers.slice().sort(function(a, b) {
+      if (col === 'players') {
         var aBad =
           a.info_hostname.includes('TRIUMPH BotAbuse 300Maps') ||
           parseInt(a.num_bots || 0, 10) > 0;
@@ -586,6 +587,7 @@
           parseInt(b.num_bots || 0, 10);
 
         return bHumans - aHumans;
+      }
       var av = (a.info_hostname || '').toLowerCase();
       var bv = (b.info_hostname || '').toLowerCase();
       return dir * av.localeCompare(bv);
