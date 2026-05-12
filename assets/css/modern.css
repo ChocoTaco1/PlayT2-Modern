@@ -619,7 +619,7 @@ a {
     margin-left: 0px;
   }
 
-  .arsenal-header { flex-direction: column; align-items: flex-start; }
+  .arsenal-header { align-items: flex-start; }
   .deploy-grid    { grid-template-columns: 1fr; }
 
   .section { padding: 4rem 1.5rem; }
