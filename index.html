@@ -357,11 +357,11 @@
 
       // sort by player count descending
       entries.sort(function(a, b) {
-        if(a.info_hostname.includes('TRIUMPH BotAbuse 300Maps') || b.info_hostname.includes('TRIUMPH BotAbuse 300Maps')){
-          return -100;
+        if(a.info_mod.includes('Triumph') || b.info_mod.includes('Triumph')){
+          return parseInt(-500);
         }
         else if(parseInt((a.num_bots) + parseInt(b.num_bots) > 0)) {
-          return -100;
+          return parseInt(-300);
         }
         else {
           return parseInt(b.num_players - b.num_bots || 0, 10) - parseInt(a.num_players - a.num_bots || 0, 10);
