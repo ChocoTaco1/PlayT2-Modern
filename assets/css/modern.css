@@ -34,7 +34,7 @@ a {
   transition: color 0.25s;
 }
 
-/* ── Navbar ─────────────────────────────────────────────── */
+/*  Navbar  */
 .navbar {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -141,7 +141,7 @@ a {
   box-shadow: 0 0 20px var(--accent-glow);
 }
 
-/* ── Hero ────────────────────────────────────────────────── */
+/*  Hero  */
 .hero {
   position: relative;
   min-height: 100vh;
@@ -264,7 +264,7 @@ a {
 
 .hero-trust .stars { color: var(--accent); }
 
-/* ── Dashboard mockup ────────────────────────────────────── */
+/*  Dashboard mockup  */
 .hero-mockup {
   position: relative;
   width: 100%;
@@ -282,7 +282,7 @@ a {
   border-radius: var(--radius-lg);
 }
 
-/* ── Section shared ──────────────────────────────────────── */
+/*  Section shared  */
 .section {
   padding: 6rem 2rem;
   position: relative;
@@ -325,7 +325,7 @@ a {
   margin: 0 auto 2.5rem;
 }
 
-/* ── Install cards ───────────────────────────────────────── */
+/*  Install cards  */
 .install-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -377,7 +377,7 @@ a {
   flex-wrap: wrap;
 }
 
-/* ── Steps ───────────────────────────────────────────────── */
+/*  Steps  */
 .steps-header {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -441,7 +441,7 @@ a {
   line-height: 1.75;
 }
 
-/* ── Resources ───────────────────────────────────────────── */
+/*  Resources  */
 .resources-section {
   background: var(--bg-card);
   border-top: 1px solid var(--border);
@@ -496,7 +496,7 @@ a {
   opacity: 0.6;
 }
 
-/* ── CTA banner ──────────────────────────────────────────── */
+/*  CTA banner  */
 .cta-section {
   text-align: center;
 }
@@ -537,7 +537,7 @@ a {
   line-height: 1.8;
 }
 
-/* ── Footer ──────────────────────────────────────────────── */
+/*  Footer  */
 .footer {
   background: var(--bg-card);
   border-top: 1px solid var(--border);
@@ -550,7 +550,7 @@ a {
 .footer a { color: var(--text-muted); border: 0; }
 .footer a:hover { color: var(--accent); }
 
-/* ── Utility button variants ─────────────────────────────── */
+/*  Utility button variants  */
 .btn-mirror {
   padding: 0.5rem 1.2rem;
   border-radius: 50px;
@@ -586,7 +586,7 @@ a {
   flex-wrap: wrap;
 }
 
-/* ── Mobile hamburger ────────────────────────────────────── */
+/*  Mobile hamburger  */
 .navbar-toggle {
   display: none;
   background: none;
@@ -596,7 +596,7 @@ a {
   font-size: 1.3rem;
 }
 
-/* ── Responsive ──────────────────────────────────────────── */
+/*  Responsive  */
 @media (max-width: 900px) {
   .install-grid,
   .steps-grid,
@@ -675,7 +675,7 @@ a {
   .btn-primary-nav { display: none; }
 }
 
-/* ─── SERVER TICKER ─────────────────────────────────────── */
+/*  SERVER TICKER  */
 .ticker-bar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
@@ -920,7 +920,7 @@ body.has-ticker .footer { padding-bottom: calc(30px + 1rem); }
   color: var(--text-muted);
 }
 
-/* ─── INSTALL / DEPLOY ───────────────────────────────────── */
+/*  INSTALL / DEPLOY  */
 .deploy-section {
   background: var(--bg);
   border-top: 1px solid var(--border);
