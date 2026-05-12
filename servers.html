@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
 
   <style>
-    /* ── Page layout ──────────────────────────────────────── */
+    /*  Page layout  */
     .servers-page {
       padding-top: 62px; /* navbar height */
       min-height: 100vh;
@@ -87,7 +87,7 @@
       margin-top: 0.2rem;
     }
 
-    /* ── Toolbar ──────────────────────────────────────────── */
+    /*  Toolbar  */
     .servers-toolbar {
       padding: 1.25rem 0;
       border-bottom: 1px solid var(--border);
@@ -150,7 +150,7 @@
     }
     .status-dot.error { background: var(--red); animation: none; }
 
-    /* ── Table ────────────────────────────────────────────── */
+    /*  Table  */
     .servers-table-wrap {
       padding: 2rem 0 4rem;
     }
@@ -244,7 +244,7 @@
       color: var(--muted);
     }
 
-    /* ── Modal ────────────────────────────────────────────── */
+    /*  Modal  */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -357,7 +357,7 @@
       color: var(--muted);
     }
 
-    /* ── Responsive ───────────────────────────────────────── */
+    /*  Responsive  */
     @media (max-width: 700px) {
       .servers-meta { flex-direction: row; }
       .servers-stat { text-align: left; }
@@ -457,7 +457,7 @@
 </div><!-- /servers-page -->
 
 
-<!-- ═══ MODAL ═══════════════════════════════════════════════ -->
+<!--  MODAL  -->
 <div class="modal-overlay" id="serverModal" role="dialog" aria-modal="true" aria-label="Server details">
   <div class="modal-box">
     <button class="modal-close-btn" id="closeModal" aria-label="Close">
@@ -472,7 +472,7 @@
 </div>
 
 
-<!-- ═══ FOOTER ══════════════════════════════════════════════ -->
+<!--  FOOTER  -->
 <footer class="footer">
   <p>
     &copy; Dynamix / Sierra On-Line &mdash; Community site &nbsp;&bull;&nbsp;
@@ -484,12 +484,12 @@
 
 
 <script>
-  /* ─── Nav toggle ─────────────────────────────────────────── */
+  /*  Nav toggle  */
   document.getElementById('navToggle').addEventListener('click', function() {
     document.getElementById('navLinks').classList.toggle('open');
   });
 
-  /* ─── Server list ────────────────────────────────────────── */
+  /*  Server list  */
   var allServers = [];
   var sortCol    = 'players';
   var sortDir    = -1; // -1 = desc
@@ -564,9 +564,28 @@
 
   function sortServers(servers, col, dir) {
     return servers.slice().sort(function(a, b) {
-      if (col === 'players') {
-        return dir * (parseInt(b.num_players||0,10) - parseInt(a.num_players||0,10));
-      }
+        var aBad =
+          a.info_hostname.includes('TRIUMPH BotAbuse 300Maps') ||
+          parseInt(a.num_bots || 0, 10) > 0;
+
+        var bBad =
+          b.info_hostname.includes('TRIUMPH BotAbuse 300Maps') ||
+          parseInt(b.num_bots || 0, 10) > 0;
+
+        // Push bad/bot servers to the end
+        if (aBad && !bBad) return 1;
+        if (!aBad && bBad) return -1;
+
+        // Otherwise sort by human players descending
+        var aHumans =
+          parseInt(a.num_players || 0, 10) -
+          parseInt(a.num_bots || 0, 10);
+
+        var bHumans =
+          parseInt(b.num_players || 0, 10) -
+          parseInt(b.num_bots || 0, 10);
+
+        return bHumans - aHumans;
       var av = (a.info_hostname || '').toLowerCase();
       var bv = (b.info_hostname || '').toLowerCase();
       return dir * av.localeCompare(bv);
@@ -625,7 +644,7 @@
     if (e.key === 'Escape') closeModal();
   });
 
-  /* ─── Fetch ──────────────────────────────────────────────── */
+  /*  Fetch  */
   function setStatus(ok) {
     var dot = document.getElementById('statusDot');
     dot.classList.toggle('error', !ok);
@@ -666,7 +685,7 @@
       });
   }
 
-  /* ─── Sort headers ───────────────────────────────────────── */
+  /*  Sort headers  */
   document.querySelectorAll('.server-table th.sortable').forEach(function(th) {
     th.addEventListener('click', function() {
       var col = this.getAttribute('data-col');
@@ -678,15 +697,15 @@
     });
   });
 
-  /* ─── Search filter ──────────────────────────────────────── */
+  /*  Search filter  */
   document.getElementById('searchInput').addEventListener('input', function() {
     renderTable(sortServers(allServers, sortCol, sortDir));
   });
 
-  /* ─── Refresh btn ────────────────────────────────────────── */
+  /*  Refresh btn  */
   document.getElementById('refreshBtn').addEventListener('click', fetchServers);
 
-  /* ─── Init ───────────────────────────────────────────────── */
+  /*  Init  */
   document.addEventListener('DOMContentLoaded', function() {
     fetchServers();
     setInterval(fetchServers, 60000);
