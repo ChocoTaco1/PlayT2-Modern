@@ -357,15 +357,29 @@
 
       // sort by player count descending
       entries.sort(function(a, b) {
-        if(a.info_mod.includes('Triumph') || b.info_mod.includes('Triumph')){
-          return parseInt(-500);
-        }
-        else if(parseInt((a.num_bots) + parseInt(b.num_bots) > 0)) {
-          return parseInt(-300);
-        }
-        else {
-          return parseInt(b.num_players - b.num_bots || 0, 10) - parseInt(a.num_players - a.num_bots || 0, 10);
-        }
+
+        var aBad =
+          a.info_hostname.includes('TRIUMPH BotAbuse 300Maps') ||
+          parseInt(a.num_bots || 0, 10) > 0;
+
+        var bBad =
+          b.info_hostname.includes('TRIUMPH BotAbuse 300Maps') ||
+          parseInt(b.num_bots || 0, 10) > 0;
+
+        // Push bad/bot servers to the end
+        if (aBad && !bBad) return 1;
+        if (!aBad && bBad) return -1;
+
+        // Otherwise sort by human players descending
+        var aHumans =
+          parseInt(a.num_players || 0, 10) -
+          parseInt(a.num_bots || 0, 10);
+
+        var bHumans =
+          parseInt(b.num_players || 0, 10) -
+          parseInt(b.num_bots || 0, 10);
+
+        return bHumans - aHumans;
       });
 
       if (entries.length === 0) {
