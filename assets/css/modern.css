@@ -854,6 +854,7 @@ body.has-ticker .footer { padding-bottom: calc(30px + 1rem); }
   transition: background 0.2s;
   position: relative;
   overflow: hidden;
+  background: radial-gradient(ellipse at center, rgba(3,224,163,0.18) 0%, transparent 30%);
 }
 
 .armor-window2 {
@@ -866,6 +867,7 @@ body.has-ticker .footer { padding-bottom: calc(30px + 1rem); }
   transition: background 0.2s;
   position: relative;
   overflow: hidden;
+  background: radial-gradient(ellipse at center, rgba(3,224,163,0.18) 0%, transparent 30%);
 }
 
 
