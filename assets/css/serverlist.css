@@ -844,7 +844,7 @@ body.has-ticker .footer { padding-bottom: calc(30px + 1rem); }
 
 /* ─── FOOTER ─────────────────────────────────────────────── */
 .footer {
-  background: var(--bg);
+  background: var(--bg2);
   border-top: 1px solid var(--border);
   padding: 2rem;
   text-align: center;
