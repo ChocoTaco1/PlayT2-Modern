@@ -665,7 +665,7 @@
         }
 
         document.getElementById('statServers').textContent = allServers.length;
-        document.getElementById('statPlayers').textContent = totalPlayers - totalBots - 10;  /*  -10 for Triumph Server which is all bots but doesnt count as bots, stupid  */
+        document.getElementById('statPlayers').textContent = totalPlayers - totalBots - 10 - 2;  /*  -10 for Triumph Server which is all bots but doesnt count as bots, stupid. -2 for the construction server  */
 
         var sorted = sortServers(allServers, sortCol, sortDir);
         renderTable(sorted);
