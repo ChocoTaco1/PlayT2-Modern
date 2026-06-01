@@ -153,6 +153,16 @@
                     </select>
                 </div>
 
+                <div class="ctrl-row">
+                    <span class="ctrl-lbl">Symmetry</span>
+                    <select id="sel-symmetry" style="flex:1">
+                        <option value="none"       selected>None</option>
+                        <option value="horizontal">Horizontal (↔)</option>
+                        <option value="vertical"  >Vertical (↕)</option>
+                        <option value="central"   >Central (⊕)</option>
+                    </select>
+                </div>
+
                 <div class="section-hdr">Tool Options</div>
 
                 <div class="tool-option input-row" data-tools="setHeight" style="display:none">
@@ -329,6 +339,10 @@
                     <button id="btn-mirror-a-to-b" class="full-btn accent">A → B</button>
                     <button id="btn-mirror-b-to-a" class="full-btn accent">B → A</button>
                 </div>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:4px 0 2px">
+                    <input type="checkbox" id="mirror-also-flip">
+                    <span class="hint" style="margin:0" title="After mirroring, also flip the destination side perpendicular to the mirror line — features appear diagonally opposite">Also flip (perpendicular)</span>
+                </label>
                 <button id="btn-mirror-toggle" class="full-btn active" title="Enable/disable mirror-line drag on the heightmap">🪞 Mirror Line: On</button>
                 <div class="hint">A = left/top of line &nbsp; B = right/bottom</div>
 
@@ -381,6 +395,15 @@
                             <option value="gaussian">Gaussian</option>
                             <option value="linear">Linear</option>
                             <option value="hard">Hard</option>
+                        </select>
+                    </div>
+                    <div class="ctrl-row">
+                        <span class="ctrl-lbl">Symmetry</span>
+                        <select id="imgedit-brush-symmetry" style="flex:1">
+                            <option value="none"       selected>None</option>
+                            <option value="horizontal">Horizontal (↔)</option>
+                            <option value="vertical"  >Vertical (↕)</option>
+                            <option value="central"   >Central (⊕)</option>
                         </select>
                     </div>
                     <div class="ctrl-row" id="imgedit-brush-setheight-row" style="display:none">

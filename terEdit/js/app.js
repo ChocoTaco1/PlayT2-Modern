@@ -26,6 +26,7 @@ var TerEdit = window.TerEdit || {};
         brushRadius   : 10,
         brushStrength : 12.5,  // metres per full stroke
         brushFalloff  : 'smooth',
+        brushSymmetry : 'none', // 'none' | 'horizontal' | 'vertical' | 'central'
         targetHeight  : 100,    // m  (Set Height tool)
 
         // Adjust Height tool
@@ -72,9 +73,10 @@ var TerEdit = window.TerEdit || {};
 
         // 2D Edit tab
         edit2d : {
-            mirrorAngle : 0,      // degrees from vertical (0 = vertical line)
-            mirrorEnabled : true, // false while stamp mode is active
-            dragActive  : false,  // dragging on the 2D canvas to rotate mirror
+            mirrorAngle   : 0,      // degrees from vertical (0 = vertical line)
+            mirrorEnabled : true,   // false while stamp mode is active
+            mirrorAlsoFlip: false,  // also flip destination side perpendicularly
+            dragActive    : false,  // dragging on the 2D canvas to rotate mirror
             // Measure tool
             measuring   : false,
             measureA    : null,   // { x, y } in grid coords
@@ -117,15 +119,16 @@ var TerEdit = window.TerEdit || {};
             pasteScaleHandle : null,      // handle object being scaled { name, hlx, hly } or null
             pasteScaleDragStart: null,    // { anchorX, anchorY, startW, startH }
             // 2D brush paint
-            brush2dActive  : false,   // true when brush paint mode is enabled
-            brush2dTool    : 'raise',
-            brush2dRadius  : 10,
-            brush2dStrength: 12.5,
-            brush2dFalloff : 'smooth',
-            brush2dTargetHt: 100,
-            brush2dPainting: false,   // pointer held down while brushing
-            brush2dGX      : -1,      // current brush cursor grid position
-            brush2dGY      : -1
+            brush2dActive   : false,   // true when brush paint mode is enabled
+            brush2dTool     : 'raise',
+            brush2dRadius   : 10,
+            brush2dStrength : 12.5,
+            brush2dFalloff  : 'smooth',
+            brush2dSymmetry : 'none',  // 'none' | 'horizontal' | 'vertical' | 'central'
+            brush2dTargetHt : 100,
+            brush2dPainting : false,   // pointer held down while brushing
+            brush2dGX       : -1,      // current brush cursor grid position
+            brush2dGY       : -1
         },
 
         // Texture alpha paint
@@ -914,6 +917,50 @@ var TerEdit = window.TerEdit || {};
             }
             ie.clipboard.alphaMaps = clipAlpha;
         }
+        saveClipboardToStorage(ie.clipboard);
+    }
+
+    /**
+     * Persist the clipboard to localStorage so it can be read by other open tabs.
+     * @param {object|null} clip  ie.clipboard object, or null to clear.
+     */
+    function saveClipboardToStorage(clip) {
+        if (!clip) { try { localStorage.removeItem('terEdit_clipboard'); } catch (e) {} return; }
+        try {
+            var obj = {
+                w         : clip.w,
+                h         : clip.h,
+                data      : Array.from(clip.data),
+                mask      : clip.mask ? Array.from(clip.mask) : null,
+                alphaMaps : clip.alphaMaps
+                    ? clip.alphaMaps.map(function (a) { return a ? Array.from(a) : null; })
+                    : null
+            };
+            localStorage.setItem('terEdit_clipboard', JSON.stringify(obj));
+        } catch (e) { /* quota exceeded or storage unavailable — silently ignore */ }
+    }
+
+    /**
+     * Restore the clipboard from localStorage into ie.clipboard.
+     * Called before every paste so content copied in another tab is available.
+     * No-ops silently if localStorage is unavailable or the stored value is invalid.
+     */
+    function loadClipboardFromStorage() {
+        try {
+            var raw = localStorage.getItem('terEdit_clipboard');
+            if (!raw) return;
+            var obj = JSON.parse(raw);
+            if (!obj || typeof obj.w !== 'number' || typeof obj.h !== 'number' || !obj.data) return;
+            state.imgEdit.clipboard = {
+                w         : obj.w,
+                h         : obj.h,
+                data      : new Float32Array(obj.data),
+                mask      : obj.mask ? new Uint8Array(obj.mask) : null,
+                alphaMaps : obj.alphaMaps
+                    ? obj.alphaMaps.map(function (a) { return a ? new Uint8Array(a) : null; })
+                    : null
+            };
+        } catch (e) { /* parse error or storage unavailable — silently ignore */ }
     }
 
     /**
@@ -1201,22 +1248,41 @@ var TerEdit = window.TerEdit || {};
     }
 
     /**
-     * Apply the 2D brush at grid position (gx, gy) using the imgEdit brush2d settings.
+     * Apply the 2D brush at grid position (gx, gy) using the imgEdit brush2d settings,
+     * plus any symmetrical mirror positions from ie.brush2dSymmetry.
      * Also calls drawImgEditCanvas so the updated greyscale and brush cursor are visible.
      */
     function applyBrush2d(gx, gy) {
-        var ie = state.imgEdit;
-        var h  = state.terrain.heights;
-        var r  = ie.brush2dRadius;
-        var s  = ie.brush2dStrength;
-        var fo = ie.brush2dFalloff;
-        switch (ie.brush2dTool) {
-            case 'raise':     TE.brushRaise(h, gx, gy, r, s, fo);                            break;
-            case 'lower':     TE.brushLower(h, gx, gy, r, s, fo);                            break;
-            case 'flatten':   TE.brushFlatten(h, gx, gy, r, s, fo);                          break;
-            case 'smooth':    TE.brushSmooth(h, gx, gy, r, s, fo);                           break;
-            case 'setHeight': TE.brushSetHeight(h, gx, gy, r, s, fo, ie.brush2dTargetHt);    break;
-            case 'slope':     TE.brushSlope(h, gx, gy, r, s, fo);                            break;
+        var ie  = state.imgEdit;
+        var h   = state.terrain.heights;
+        var r   = ie.brush2dRadius;
+        var s   = ie.brush2dStrength;
+        var fo  = ie.brush2dFalloff;
+        var N2  = TE.BLOCK;
+        var sym = ie.brush2dSymmetry;
+
+        // Build list of positions: primary + symmetric mirrors
+        var positions = [{ x: gx, y: gy }];
+        if (sym === 'horizontal' || sym === 'central') {
+            positions.push({ x: N2 - 1 - gx, y: gy });
+        }
+        if (sym === 'vertical' || sym === 'central') {
+            positions.push({ x: gx, y: N2 - 1 - gy });
+        }
+        if (sym === 'central') {
+            positions.push({ x: N2 - 1 - gx, y: N2 - 1 - gy });
+        }
+
+        for (var pi = 0; pi < positions.length; pi++) {
+            var cx = positions[pi].x, cy = positions[pi].y;
+            switch (ie.brush2dTool) {
+                case 'raise':     TE.brushRaise(h, cx, cy, r, s, fo);                            break;
+                case 'lower':     TE.brushLower(h, cx, cy, r, s, fo);                            break;
+                case 'flatten':   TE.brushFlatten(h, cx, cy, r, s, fo);                          break;
+                case 'smooth':    TE.brushSmooth(h, cx, cy, r, s, fo);                           break;
+                case 'setHeight': TE.brushSetHeight(h, cx, cy, r, s, fo, ie.brush2dTargetHt);    break;
+                case 'slope':     TE.brushSlope(h, cx, cy, r, s, fo);                            break;
+            }
         }
         drawImgEditCanvas();
     }
@@ -1253,6 +1319,8 @@ var TerEdit = window.TerEdit || {};
         setStatus('New terrain created.');
         updateUndoButtons();
         if (state.activeTab === 'texture') renderTextureTab();
+        if (state.activeTab === 'edit2d')  draw2dCanvas();
+        if (state.activeTab === 'imgedit') drawImgEditCanvas();
     }
 
     function importTer(file) {
@@ -1274,6 +1342,8 @@ var TerEdit = window.TerEdit || {};
                 setStatus('Loaded: ' + file.name);
                 updateUndoButtons();
                 if (state.activeTab === 'texture') renderTextureTab();
+                if (state.activeTab === 'edit2d')  draw2dCanvas();
+                if (state.activeTab === 'imgedit') drawImgEditCanvas();
             } catch (err) {
                 alert('Error loading .ter file:\n' + err.message);
             }
@@ -1345,6 +1415,8 @@ var TerEdit = window.TerEdit || {};
             setStatus('PNG heightmap imported and normalised: ' + file.name);
             updateUndoButtons();
             if (state.activeTab === 'texture') renderTextureTab();
+            if (state.activeTab === 'edit2d')  draw2dCanvas();
+            if (state.activeTab === 'imgedit') drawImgEditCanvas();
         };
         img.onerror = function () {
             URL.revokeObjectURL(url);
@@ -1497,21 +1569,19 @@ var TerEdit = window.TerEdit || {};
             tab !== 'edit2d' && tab !== 'imgedit') {
             clearStampMode();
         }
-        // Cancel paste preview and stop brush paint when leaving imgedit
+        // Cancel paste preview when leaving imgedit; stop any active paint stroke but
+        // preserve brush2dActive so the mode is still on when returning to this tab.
         if (state.activeTab === 'imgedit' && tab !== 'imgedit') {
             state.imgEdit.pastePreview     = null;
             state.imgEdit.pasteDragging    = false;
             state.imgEdit.pasteScaleHandle = null;
             state.imgEdit.pasteScaleDragStart = null;
+            // Stop any in-progress paint stroke; leave brush2dActive intact so
+            // the user does not have to re-enable it when coming back to this tab.
             if (state.imgEdit.brush2dActive) {
-                state.imgEdit.brush2dActive  = false;
                 state.imgEdit.brush2dPainting = false;
-                state.imgEdit.brush2dGX      = -1;
-                state.imgEdit.brush2dGY      = -1;
-                var bbt = el('btn-imgedit-brush-toggle');
-                if (bbt) { bbt.classList.remove('active'); bbt.textContent = '\uD83D\uDD8C\uFE0F Brush Paint: Off'; }
-                var bbc = el('imgedit-brush-controls');
-                if (bbc) bbc.style.display = 'none';
+                state.imgEdit.brush2dGX       = -1;
+                state.imgEdit.brush2dGY       = -1;
             }
         }
         // Reset tex brush position when leaving texture tab
@@ -1594,33 +1664,60 @@ var TerEdit = window.TerEdit || {};
     // Brush application
     // -----------------------------------------------------------------------
 
+    /**
+     * Apply the current brush tool at grid position (gx, gy), plus any
+     * symmetrical positions according to state.brushSymmetry.
+     */
     function applyBrushAt(gx, gy) {
         if (!state.terrain) return;
 
         var h  = state.terrain.heights;
-        var cx = gx, cy = gy;
         var r  = state.brushRadius;
         var s  = state.brushStrength;
         var fo = state.brushFalloff;
+        var N2 = TE.BLOCK;
+        var sym = state.brushSymmetry;
 
-        switch (state.activeTool) {
-            case 'raise':        TE.brushRaise(h, cx, cy, r, s, fo);                         break;
-            case 'lower':        TE.brushLower(h, cx, cy, r, s, fo);                         break;
-            case 'flatten':      TE.brushFlatten(h, cx, cy, r, s, fo);                       break;
-            case 'smooth':       TE.brushSmooth(h, cx, cy, r, s, fo);                        break;
-            case 'setHeight':    TE.brushSetHeight(h, cx, cy, r, s, fo, state.targetHeight); break;
-            case 'slope':        TE.brushSlope(h, cx, cy, r, s, fo);                         break;
-            case 'twist':        TE.brushTwist(h, cx, cy, r, s, fo);                         break;
-            // 'adjustHeight' is handled separately via mouse-Y delta in onPointerMove
+        // Collect all positions to paint: primary + symmetric mirrors
+        var positions = [{ x: gx, y: gy }];
+        if (sym === 'horizontal' || sym === 'central') {
+            positions.push({ x: N2 - 1 - gx, y: gy });
+        }
+        if (sym === 'vertical' || sym === 'central') {
+            positions.push({ x: gx, y: N2 - 1 - gy });
+        }
+        if (sym === 'central') {
+            positions.push({ x: N2 - 1 - gx, y: N2 - 1 - gy });
         }
 
-        var rInt = Math.ceil(r);
+        var rInt  = Math.ceil(r);
+        var Nmax  = N2 - 1;
         var dirty = {
-            x0 : Math.max(0, Math.round(cx) - rInt),
-            x1 : Math.min(255, Math.round(cx) + rInt),
-            y0 : Math.max(0, Math.round(cy) - rInt),
-            y1 : Math.min(255, Math.round(cy) + rInt)
+            x0: Math.max(0,    Math.round(gx) - rInt),
+            x1: Math.min(Nmax, Math.round(gx) + rInt),
+            y0: Math.max(0,    Math.round(gy) - rInt),
+            y1: Math.min(Nmax, Math.round(gy) + rInt)
         };
+
+        for (var pi = 0; pi < positions.length; pi++) {
+            var cx = positions[pi].x, cy = positions[pi].y;
+            switch (state.activeTool) {
+                case 'raise':        TE.brushRaise(h, cx, cy, r, s, fo);                         break;
+                case 'lower':        TE.brushLower(h, cx, cy, r, s, fo);                         break;
+                case 'flatten':      TE.brushFlatten(h, cx, cy, r, s, fo);                       break;
+                case 'smooth':       TE.brushSmooth(h, cx, cy, r, s, fo);                        break;
+                case 'setHeight':    TE.brushSetHeight(h, cx, cy, r, s, fo, state.targetHeight); break;
+                case 'slope':        TE.brushSlope(h, cx, cy, r, s, fo);                         break;
+                case 'twist':        TE.brushTwist(h, cx, cy, r, s, fo);                         break;
+                // 'adjustHeight' is handled separately via mouse-Y delta in onPointerMove
+            }
+            // Expand dirty region to cover all painted positions
+            dirty.x0 = Math.min(dirty.x0, Math.max(0,    Math.round(cx) - rInt));
+            dirty.x1 = Math.max(dirty.x1, Math.min(Nmax, Math.round(cx) + rInt));
+            dirty.y0 = Math.min(dirty.y0, Math.max(0,    Math.round(cy) - rInt));
+            dirty.y1 = Math.max(dirty.y1, Math.min(Nmax, Math.round(cy) + rInt));
+        }
+
         TE.updateTerrainHeights(h, dirty);
 
         // Throttled preview update (every ~10 frames is fine for 3D; greyscale is fast)
@@ -1845,6 +1942,7 @@ var TerEdit = window.TerEdit || {};
                 evt.preventDefault();
                 var iePaste = state.imgEdit;
                 if (!state.terrain) { setStatus('Load or create a terrain first.'); return; }
+                loadClipboardFromStorage();
                 if (!iePaste.clipboard) { setStatus('Clipboard is empty \u2014 copy or cut something first.'); return; }
                 var ox = iePaste.selection ? iePaste.selection.x0 : 0;
                 var oy = iePaste.selection ? iePaste.selection.y0 : 0;
@@ -1876,13 +1974,13 @@ var TerEdit = window.TerEdit || {};
             }
         }
 
+        // Undo / Redo — available in all camera modes, including fly
+        if ((evt.ctrlKey || evt.metaKey) && key === 'z' && !evt.shiftKey) { evt.preventDefault(); undo(); return; }
+        if ((evt.ctrlKey || evt.metaKey) && (key === 'y' || (evt.shiftKey && key === 'z'))) { evt.preventDefault(); redo(); return; }
+
         // In fly mode all remaining shortcuts are suppressed to avoid clashing
         // with WASD/Q/E/W/F/T/1-7 movement and look keys consumed by the camera.
         if (TE.getCamMode() === 'fly') return;
-
-        // Undo / Redo
-        if ((evt.ctrlKey || evt.metaKey) && key === 'z') { undo(); return; }
-        if ((evt.ctrlKey || evt.metaKey) && (key === 'y' || (evt.shiftKey && key === 'z'))) { redo(); return; }
 
         // Brush radius  [ and ]
         if (key === '[') { adjustBrushRadius(-2); }
@@ -1992,6 +2090,13 @@ var TerEdit = window.TerEdit || {};
         if (falloffSel) {
             falloffSel.addEventListener('change', function () {
                 state.brushFalloff = falloffSel.value;
+            });
+        }
+
+        var symmetrySel = el('sel-symmetry');
+        if (symmetrySel) {
+            symmetrySel.addEventListener('change', function () {
+                state.brushSymmetry = symmetrySel.value;
             });
         }
 
@@ -2340,8 +2445,9 @@ var TerEdit = window.TerEdit || {};
                     }
                 }
                 refreshPreviewCanvas();
-                if (state.activeTab === 'edit2d') draw2dCanvas();
+                if (state.activeTab === 'edit2d')  draw2dCanvas();
                 if (state.activeTab === 'texture') drawTexCanvas();
+                if (state.activeTab === 'imgedit') drawImgEditCanvas();
             });
 
             pc.addEventListener('pointerup', function () {
@@ -2429,7 +2535,7 @@ var TerEdit = window.TerEdit || {};
         el('btn-mirror-a-to-b').addEventListener('click', function () {
             if (!state.terrain) return;
             pushUndo();
-            TE.mirrorTerrain(state.terrain.heights, state.edit2d.mirrorAngle, 'srcA');
+            TE.mirrorTerrain(state.terrain.heights, state.edit2d.mirrorAngle, 'srcA', state.edit2d.mirrorAlsoFlip);
             applyHeightsToAll();
             setStatus('Mirrored A→B at ' + state.edit2d.mirrorAngle + '°.');
         });
@@ -2437,10 +2543,17 @@ var TerEdit = window.TerEdit || {};
         el('btn-mirror-b-to-a').addEventListener('click', function () {
             if (!state.terrain) return;
             pushUndo();
-            TE.mirrorTerrain(state.terrain.heights, state.edit2d.mirrorAngle, 'srcB');
+            TE.mirrorTerrain(state.terrain.heights, state.edit2d.mirrorAngle, 'srcB', state.edit2d.mirrorAlsoFlip);
             applyHeightsToAll();
             setStatus('Mirrored B→A at ' + state.edit2d.mirrorAngle + '°.');
         });
+
+        var mirrorAlsoFlipCb = el('mirror-also-flip');
+        if (mirrorAlsoFlipCb) {
+            mirrorAlsoFlipCb.addEventListener('change', function () {
+                state.edit2d.mirrorAlsoFlip = mirrorAlsoFlipCb.checked;
+            });
+        }
 
         // Drag on 2D canvas to rotate mirror line; click to place measure points; click-to-stamp;
         // also handles texture alpha painting when texture tab is active
@@ -3169,6 +3282,14 @@ var TerEdit = window.TerEdit || {};
             });
         }
 
+        // Brush symmetry
+        var iBrushSym = el('imgedit-brush-symmetry');
+        if (iBrushSym) {
+            iBrushSym.addEventListener('change', function () {
+                ie.brush2dSymmetry = iBrushSym.value;
+            });
+        }
+
         // Brush set-height target
         var iBrushTgt = el('imgedit-brush-target-ht');
         if (iBrushTgt) {
@@ -3219,6 +3340,7 @@ var TerEdit = window.TerEdit || {};
         // Paste creates a floating preview that the user can drag before committing
         el('btn-imgedit-paste').addEventListener('click', function () {
             if (!requireTerrain()) return;
+            loadClipboardFromStorage();
             if (!ie.clipboard) { setStatus('Clipboard is empty — copy or cut something first.'); return; }
             var ox = ie.selection ? ie.selection.x0 : 0;
             var oy = ie.selection ? ie.selection.y0 : 0;

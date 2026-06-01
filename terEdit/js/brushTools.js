@@ -329,11 +329,15 @@ var TerEdit = window.TerEdit || {};
      *   90° → A is bottom half, B is top half
      *
      * @param {Float32Array} heights
-     * @param {number} angleDeg   angle of mirror line (0–179)
-     * @param {string} direction  'srcA' – copy A to B (B gets overwritten)
-     *                            'srcB' – copy B to A (A gets overwritten)
+     * @param {number}  angleDeg   angle of mirror line (0–179)
+     * @param {string}  direction  'srcA' – copy A to B (B gets overwritten)
+     *                             'srcB' – copy B to A (A gets overwritten)
+     * @param {boolean} alsoFlip   when true, also reflect the mirrored side across
+     *                             the axis perpendicular to the mirror line, so that
+     *                             terrain features appear diagonally opposite each
+     *                             other (equivalent to a 180° rotation about centre).
      */
-    TE.mirrorTerrain = function (heights, angleDeg, direction) {
+    TE.mirrorTerrain = function (heights, angleDeg, direction, alsoFlip) {
         var cx = N / 2, cy = N / 2;
         var A  = angleDeg * Math.PI / 180;
         var sinA = Math.sin(A), cosA = Math.cos(A);
@@ -354,10 +358,22 @@ var TerEdit = window.TerEdit || {};
                 var overwrite = (direction === 'srcA') ? (side < 0) : (side > 0);
                 if (!overwrite) continue;
 
-                // Reflect (x,y) across the line → read height from there
-                var proj = dx * sinA + dy * cosA;
-                var mx   = cx + 2 * proj * sinA - dx;
-                var my   = cy + 2 * proj * cosA - dy;
+                // Determine the source point using backward mapping (destination is always
+                // the current integer pixel (x, y), avoiding forward-map rounding artifacts).
+                //
+                // Normal mirror: reflect (x,y) across the mirror line.
+                // alsoFlip:      mirror + perpendicular-flip == 180° rotation about centre,
+                //                so source = (2*cx - x, 2*cy - y).  No fractional destination
+                //                means no holes or double-writes at off-axis angles.
+                var mx, my;
+                if (alsoFlip) {
+                    mx = 2 * cx - x;
+                    my = 2 * cy - y;
+                } else {
+                    var proj = dx * sinA + dy * cosA;
+                    mx = cx + 2 * proj * sinA - dx;
+                    my = cy + 2 * proj * cosA - dy;
+                }
 
                 // Bilinear sample from snapshot
                 var h;
