@@ -665,7 +665,11 @@
         }
 
         document.getElementById('statServers').textContent = allServers.length;
-        document.getElementById('statPlayers').textContent = totalPlayers - totalBots - 10 - 2;  /*  -10 for Triumph Server which is all bots but doesnt count as bots, stupid. -2 for the construction server  */
+        document.getElementById('statPlayers').textContent = totalPlayers - totalBots - 10 - 1;  /*  -10 for Triumph Server which is all bots but doesnt count as bots, stupid. -2 for the construction server  */
+
+        if(document.getElementById('statPlayers').textContent < 0) {
+          document.getElementById('statPlayers').textContent = 0;
+        }
 
         var sorted = sortServers(allServers, sortCol, sortDir);
         renderTable(sorted);
