@@ -491,8 +491,17 @@
 
   function escHtml(s) {
     return String(s || '')
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      //.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    let escapeStr = originalStr.replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+    let unescapeStr = escapeStr.replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
   }
 
   function modeBadge(mode) {
@@ -594,8 +603,8 @@
     var s = allServers.find(function(x){ return x._sid === sid; });
     if (!s) return;
 
-    document.getElementById('modalName').textContent  = s.info_hostname || 'Unknown Server';
-    document.getElementById('modalDesc').textContent  = s.info_desc     || 'No description available.';
+    document.getElementById('modalName').textContent  = escHtml(s.info_hostname) || 'Unknown Server';
+    document.getElementById('modalDesc').textContent  = escHtml(s.info_desc) || 'No description available.';
 
     var pContainer = document.getElementById('modalPlayers');
     pContainer.innerHTML = '';
@@ -666,7 +675,7 @@
         }
 
         document.getElementById('statServers').textContent = allServers.length;
-        document.getElementById('statPlayers').textContent = totalPlayers - totalBots - 10 - 1;  /*  -10 for Triumph Server which is all bots but doesnt count as bots, stupid. -2 for the construction server  */
+        document.getElementById('statPlayers').textContent = totalPlayers - totalBots - 10 - 2;  /*  -10 for Triumph Server which is all bots but doesnt count as bots, stupid. -2 for the construction server  */
 
         if(document.getElementById('statPlayers').textContent < 0) {
           document.getElementById('statPlayers').textContent = 0;
